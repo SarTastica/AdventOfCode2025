@@ -15,7 +15,7 @@ public class Day02ATest {
     @Test
     public void solveDay02PartA() throws IOException {
         Path path = Paths.get("src/test/resources/day02-a/input.txt");
-        String input = Files.readString(path); // Leemos todo el contenido como un solo String
+        String input = Files.readString(path);
 
         GiftShop giftShop = new GiftShop();
         long result = giftShop.calculateInvalidIdSum(input);
