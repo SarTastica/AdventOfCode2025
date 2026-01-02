@@ -14,7 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class Day01ATest {
     @Test
     public void solveDay01PartA() throws IOException {
-        // Esta ruta busca el fichero que vas a crear en el siguiente paso
         Path path = Paths.get("src/test/resources/day01-a/orders.txt");
 
         List<String> lines = Files.readAllLines(path);
@@ -32,7 +31,6 @@ public class Day01ATest {
         System.out.println("SOLUCION DAY 1 - PART A: " + password);
         System.out.println("***********************************");
 
-        // Verifica que el resultado sea razonable (mayor o igual a 0)
         assertTrue(password >= 0);
     }
 }

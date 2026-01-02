@@ -11,8 +11,6 @@ public class Dial {
     }
 
     public void apply(Order order) {
-        // En lugar de calcular el final directamente, simulamos paso a paso
-        // para detectar si pasamos por el 0 DURANTE la rotación.
         for (int i = 0; i < order.getAmount(); i++) {
 
             if (order.getDirection() == 'L') {
@@ -29,7 +27,6 @@ public class Dial {
                 }
             }
 
-            // Comprobamos en CADA paso (click)
             if (this.currentPosition == 0) {
                 this.zeroHits++;
             }

@@ -16,12 +16,10 @@ public class Day01BTest {
 
     @Test
     public void solveDay01PartB() throws IOException {
-        // Apuntamos a la carpeta b
         Path path = Paths.get("src/test/resources/day01-b/orders.txt");
 
         List<String> lines = Files.readAllLines(path);
 
-        // Usamos el Dial del paquete 'b' que tiene la lógica nueva
         Dial dial = new Dial();
 
         for (String line : lines) {
