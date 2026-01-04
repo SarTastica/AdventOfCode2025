@@ -26,5 +26,7 @@ public class Day12ATest {
         System.out.println("***********************************");
 
         assertTrue(result >= 0);
+
     }
 }
+
