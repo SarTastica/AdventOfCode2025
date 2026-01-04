@@ -1,126 +1,142 @@
 package software.aoc.day10.b;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Machine {
-    private final int[] targets;
-    private final List<List<Integer>> buttons;
 
-    private long minPressesFound = Long.MAX_VALUE;
-    private int maxImpactPerPress = 1;
+    private List<List<Integer>> buttons;
+    private List<Integer> joltageRequirements;
+    private Boolean[][] buttonInfluences;
+    private Map<List<Integer>, Integer> joltageIncrToNrPresses;
 
-    public Machine(String line) {
-        this.buttons = new ArrayList<>();
-
-        Pattern patternTargets = Pattern.compile("\\{([\\d,]+)\\}");
-        Matcher matcherTargets = patternTargets.matcher(line);
-        if (matcherTargets.find()) {
-            this.targets = Arrays.stream(matcherTargets.group(1).split(","))
-                    .map(String::trim)
-                    .mapToInt(Integer::parseInt)
-                    .toArray();
-        } else {
-            throw new IllegalArgumentException("No se encontraron targets de voltaje");
-        }
-
-        Pattern patternButtons = Pattern.compile("\\(([\\d,]+)\\)");
-        Matcher matcherButtons = patternButtons.matcher(line);
-        while (matcherButtons.find()) {
-            List<Integer> affectedCounters = new ArrayList<>();
-            for (String s : matcherButtons.group(1).split(",")) {
-                int counterIdx = Integer.parseInt(s.trim());
-                if (counterIdx < targets.length) {
-                    affectedCounters.add(counterIdx);
-                }
-            }
-            this.buttons.add(affectedCounters);
-        }
-
-        this.maxImpactPerPress = 0;
-        for (List<Integer> btn : buttons) {
-            this.maxImpactPerPress = Math.max(this.maxImpactPerPress, btn.size());
-        }
-        if (this.maxImpactPerPress == 0) this.maxImpactPerPress = 1;
+    public Machine(final String line) {
+        parse(line);
+        calculatePatterns();
     }
 
     public long solveMinJoltagePresses() {
-        this.minPressesFound = Long.MAX_VALUE;
-        int[] currentCounters = new int[targets.length];
-
-        int[] maxPressesPerButton = new int[buttons.size()];
-        for (int i = 0; i < buttons.size(); i++) {
-            int limit = Integer.MAX_VALUE;
-            List<Integer> btn = buttons.get(i);
-
-            if (btn.isEmpty()) {
-                limit = 0;
-            } else {
-                for (int counterIdx : btn) {
-                    limit = Math.min(limit, targets[counterIdx]);
-                }
-            }
-            maxPressesPerButton[i] = limit;
-        }
-
-        search(0, currentCounters, 0, maxPressesPerButton);
-
-        return (minPressesFound == Long.MAX_VALUE) ? 0 : minPressesFound;
+        int result = getNrOfPressesForVoltages(joltageRequirements, new HashMap<>());
+        return (long) result;
     }
 
-    private void search(int btnIdx, int[] currentCounters, long currentPresses, int[] limits) {
-        if (currentPresses >= minPressesFound) {
-            return;
+    private int getNrOfPressesForVoltages(final List<Integer> current, final Map<List<Integer>, Integer> memoMap) {
+        if (current.stream().allMatch(i -> i == 0)) {
+            return 0;
+        }
+        if (memoMap.containsKey(current)) {
+            return memoMap.get(current);
         }
 
-        long remainingGap = 0;
-        for (int i = 0; i < targets.length; i++) {
-            remainingGap += (targets[i] - currentCounters[i]);
+        int minTotalPresses = Integer.MAX_VALUE;
+
+        for (final Entry<List<Integer>, Integer> entry : joltageIncrToNrPresses.entrySet()) {
+            final List<Integer> pattern = entry.getKey();
+
+            if (isValid(current, pattern)) {
+                final List<Integer> newGoal = new ArrayList<>(current.size());
+                for (int i = 0; i < current.size(); i++) {
+                    newGoal.add((current.get(i) - pattern.get(i)) / 2);
+                }
+
+                // Recursión
+                final int pressesForRest = getNrOfPressesForVoltages(newGoal, memoMap);
+
+                if (pressesForRest < Integer.MAX_VALUE) {
+                    minTotalPresses = Math.min(minTotalPresses, entry.getValue() + (2 * pressesForRest));
+                }
+            }
         }
 
-        if (remainingGap == 0) {
-            minPressesFound = currentPresses;
-            return;
+        memoMap.put(current, minTotalPresses);
+        return minTotalPresses;
+    }
+
+    private boolean isValid(final List<Integer> current, final List<Integer> pattern) {
+        for (int i = 0; i < pattern.size(); i++) {
+            final int incr = pattern.get(i);
+            final int cur = current.get(i);
+            if (!(incr <= cur && Math.abs(incr % 2) == Math.abs(cur % 2))) {
+                return false;
+            }
         }
+        return true;
+    }
 
-        long minStepsNeeded = (remainingGap + maxImpactPerPress - 1) / maxImpactPerPress;
+    private void calculatePatterns() {
+        final int nrPatterns = (int) Math.pow(2, buttons.size());
+        joltageIncrToNrPresses = new HashMap<>();
 
-        if (currentPresses + minStepsNeeded >= minPressesFound) {
-            return;
-        }
+        for (int i = 0; i < nrPatterns; i++) {
+            final List<Integer> joltageIncreases = new ArrayList<>(Collections.nCopies(joltageRequirements.size(), 0));
 
-        if (btnIdx == buttons.size()) {
-            return;
-        }
+            final String binary = getBinaryRepresentation(i);
+            int nrButtonsPressed = 0;
 
-        int limit = limits[btnIdx];
-        List<Integer> affected = buttons.get(btnIdx);
-
-        if (affected.isEmpty()) {
-            search(btnIdx + 1, currentCounters, currentPresses, limits);
-            return;
-        }
-
-        for (int k = 0; k <= limit; k++) {
-
-            boolean overflow = false;
-            for (int counterIdx : affected) {
-                if (currentCounters[counterIdx] + k > targets[counterIdx]) {
-                    overflow = true;
-                    break;
+            for (int buttonNr = 0; buttonNr < binary.length(); buttonNr++) {
+                if (binary.charAt(buttonNr) == '1') {
+                    final Boolean[] influence = buttonInfluences[buttonNr];
+                    for (int k = 0; k < influence.length; k++) {
+                        if (influence[k]) {
+                            joltageIncreases.set(k, joltageIncreases.get(k) + 1);
+                        }
+                    }
+                    nrButtonsPressed++;
                 }
             }
 
-            if (overflow) break;
-
-            for (int counterIdx : affected) currentCounters[counterIdx] += k;
-
-            search(btnIdx + 1, currentCounters, currentPresses + k, limits);
-
-            for (int counterIdx : affected) currentCounters[counterIdx] -= k;
+            if (!joltageIncrToNrPresses.containsKey(joltageIncreases)
+                    || joltageIncrToNrPresses.get(joltageIncreases) > nrButtonsPressed) {
+                joltageIncrToNrPresses.put(joltageIncreases, nrButtonsPressed);
+            }
         }
+    }
+
+    private void parse(final String line) {
+        String buttonsSegment = line.substring(line.indexOf("]") + 1, line.indexOf("{")).trim();
+        String[] rawButtons = buttonsSegment.split("\\)");
+
+        buttons = new ArrayList<>();
+        for (String rawBtn : rawButtons) {
+            if (rawBtn.isBlank()) continue;
+            String clean = rawBtn.replace("(", "").replace(",", " ").trim();
+            if (clean.isEmpty()) {
+                buttons.add(new ArrayList<>());
+                continue;
+            }
+            List<Integer> wiring = Arrays.stream(clean.split("\\s+"))
+                    .map(Integer::parseInt)
+                    .collect(Collectors.toList());
+            buttons.add(wiring);
+        }
+
+        final String joltageReqsString = line.substring(line.indexOf("{") + 1, line.indexOf("}"));
+        joltageRequirements = Arrays.stream(joltageReqsString.split(","))
+                .map(String::trim)
+                .map(Integer::parseInt)
+                .collect(Collectors.toList());
+
+        buttonInfluences = new Boolean[buttons.size()][joltageRequirements.size()];
+        for (int i = 0; i < buttons.size(); i++) {
+            final Boolean[] influence = new Boolean[joltageRequirements.size()];
+            Arrays.fill(influence, false);
+            final List<Integer> button = buttons.get(i);
+            for (final int j : button) {
+                if (j < influence.length) {
+                    influence[j] = true;
+                }
+            }
+            buttonInfluences[i] = influence;
+        }
+    }
+
+    private String getBinaryRepresentation(final int i) {
+        final StringBuilder sb = new StringBuilder(Integer.toBinaryString(i)).reverse();
+        while (sb.length() < buttons.size()) {
+            sb.append('0');
+        }
+        return sb.toString().substring(0, buttons.size());
     }
 }
