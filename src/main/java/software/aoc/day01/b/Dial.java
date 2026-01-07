@@ -15,13 +15,11 @@ public class Dial {
 
             if (order.getDirection() == 'L') {
                 this.currentPosition--;
-                // Si bajamos de 0, damos la vuelta al 99
                 if (this.currentPosition < 0) {
                     this.currentPosition = 99;
                 }
             } else if (order.getDirection() == 'R') {
                 this.currentPosition++;
-                // Si subimos de 99, damos la vuelta al 0
                 if (this.currentPosition >= MAX_POSITIONS) {
                     this.currentPosition = 0;
                 }
