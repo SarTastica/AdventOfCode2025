@@ -33,7 +33,7 @@ public class InventoryManager {
         List<Range> freshRanges = Arrays.stream(sections[0].split("\\n")) // Dividir por líneas
                 .map(String::trim)
                 .filter(s -> !s.isBlank())
-                .map(Range::new) // Convertir String a Objeto Range
+                .map(Range::new)
                 .collect(Collectors.toList());
 
         List<Long> availableIds = Arrays.stream(sections[1].split("\\n"))
