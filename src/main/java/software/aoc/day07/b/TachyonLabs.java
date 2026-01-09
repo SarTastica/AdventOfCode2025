@@ -30,7 +30,6 @@ public class TachyonLabs {
             }
         }
 
-        // 2. Simulación Fila a Fila
         for (int r = 0; r < rows; r++) {
             Map<Integer, Long> nextTimelines = new HashMap<>();
 
