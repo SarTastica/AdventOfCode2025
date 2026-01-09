@@ -18,7 +18,7 @@ public class InventoryManager {
         }
 
         public long length() {
-            return end - start + 1; // +1 porque es inclusivo (3-5 son 3 números: 3,4,5)
+            return end - start + 1;
         }
 
         @Override
