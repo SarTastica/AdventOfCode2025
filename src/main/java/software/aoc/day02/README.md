@@ -1,58 +1,71 @@
-# DÍA 2: Gift Shop
+# DÍA 2: Tienda de Regalos (Gift Shop)
 
-## 1. Contexto del Problema
-El objetivo es procesar una lista de rangos de identificadores (IDs) para detectar y sumar aquellos que son "inválidos".
+## 1. Explicación del Problema
 
-* **Entrada:** Rangos numéricos en formato texto (ej: `11-22`).
-* **Parte A:** Un ID es inválido si consiste en una secuencia repetida **exactamente dos veces** (ej: `1212`).
-* **Parte B (Generalización):** Un ID es inválido si consiste en una secuencia repetida **al menos dos veces** (ej: `123123123`).
+El objetivo de este ejercicio es procesar una lista de inventario para detectar identificadores (IDs) con patrones numéricos específicos y sumar sus valores.
 
----
+* **La Entrada:**
+  Recibimos una lista de rangos numéricos en formato texto (ej: 11-22, 45-55).
 
-## 2. Paradigma: Programación Declarativa (Streams)
-Para resolver este problema, he evitado los bucles `for` tradicionales y he optado por la **API de Streams** que nos
-facilita el procesamiento funcional de las colecciones de datos siendo asi mas eficiente y legible. 
-La tubería (pipeline) funcional quedaria asi:
+* **Parte A:**
+  Debemos encontrar los IDs "inválidos" que es una secuencia repetida **exactamente dos veces**.
 
-1.  **Split:** Dividir la entrada.
-2.  **FlatMap:** Convertir rangos en flujos de números.
-3.  **Filter:** Aplicar la regla de negocio.
-4.  **Sum:** Reducir el resultado.
-
-### Rendimiento: Streams de Primitivos
-He utilizado `LongStream` y `flatMapToLong`.
-> **Justificación Técnica:** Esta especialización evita el **Autoboxing/Unboxing** (convertir `long` a `Long`). Dado que iteramos sobre rangos que pueden contener millones de números, trabajar con tipos primitivos es una optimización crítica de memoria y CPU.
+* **Parte B:**
+  La regla se generaliza. Ahora un ID es inválido si consiste en una secuencia repetida **al menos dos veces**.
 
 ---
 
-## 3. Arquitectura: Cohesión y Abstracción
-He aplicado el **Principio de Responsabilidad Única (SRP)** extrayendo la complejidad a métodos privados (Helper Methods):
+***
 
-* `rangeToStream(String)`: Se encarga exclusivamente del parseo y generación del rango.
-* `isRepeatedSequence(long)`: Encapsula la regla de negocio pura (validación).
+## 2. Arquitectura y Estructura
 
-> **Beneficio:** Esto cumple con el principio de **Abstracción**. El método principal no sabe cómo se parsea un rango ni cómo se valida un número, solo orquesta el flujo.
+Para este ejercicio, he distribuido la lógica basándome en la **Cohesión y la Abstracción**. He evitado tener un único método gigante y he aplicado el **Principio de Responsabilidad Única (SRP)** creando métodos auxiliares especializados:
 
----
+1. **El Orquestador (calculateInvalidIdSum):** Es el método principal. No conoce los detalles de validación ni de parseo; solo define el flujo de datos.
+2. **El Generador (rangeToStream):** Se encarga exclusivamente de transformar el texto X-Y en un flujo numérico usable.
+3. **El Validador (isRepeatedSequence):** Encapsula la regla de negocio pura (la lógica matemática para saber si un número es un patrón repetido).
 
-## 4. Evolución a la Parte B: El Refactor
-El requisito cambió de "repetición exacta (mitades)" a "patrones periódicos ($N \ge 2$)".
-
-### Adaptación del Algoritmo (Fuerza Bruta Inteligente)
-Refactoricé `isRepeatedSequence` para buscar patrones:
-1.  Itero sobre posibles longitudes de patrón.
-2.  Compruebo divisibilidad (`len % patternLen == 0`).
-3.  Reconstruyo el ID esperado usando **`String.repeat()`**.
-
-### Código Expresivo
-El uso de `String.repeat(repeats)` es un ejemplo de **Código Expresivo**. En lugar de un bucle manual para concatenar strings, uso un método de la API estándar que describe claramente la intención.
+> **Beneficio:** Esta arquitectura desacopla la generación de datos de su validación. Si cambia el formato de entrada, solo toco el generador. Si cambia la regla de negocio, solo toco el validador.
 
 ---
 
-## 5. Conclusión: Bajo Acoplamiento
-Lo más destacable de la Parte B es lo que **NO** cambió.
+***
 
-* El método principal `calculateInvalidIdSum` permaneció idéntico.
-* La lógica de Streams y parseo permaneció idéntica.
+## 3. Parte A: Streams y Optimización
 
-Gracias al **Bajo Acoplamiento**, el cambio en la regla de negocio (validación matemática) no afectó a la infraestructura de procesamiento de datos.
+Para la implementación técnica, he evitado los bucles for tradicionales y he optado por la **Programación Declarativa** usando la API de Streams.
+
+**La Tubería (Pipeline):**
+El flujo de datos sigue estos pasos: Split (dividir entrada) -> FlatMap (convertir a números) -> Filter (validar) -> Sum (acumular).
+
+**Rendimiento Crítico (Streams Primitivos):**
+He utilizado LongStream y flatMapToLong en lugar de Stream<Long>.
+
+> **Defensa Técnica:** Esta decisión es vital para el rendimiento. Evita el **Autoboxing/Unboxing** (la conversión costosa entre el primitivo long y el objeto Long). Dado que iteramos sobre rangos que pueden contener millones de números, trabajar con tipos primitivos optimiza drásticamente el uso de memoria y CPU.
+
+---
+
+***
+
+## 4. Evolución a la Parte B: Generalización de Patrones
+
+En la Parte B, el requisito cambió de "mitades exactas" a "patrones periódicos" (N >= 2).
+
+**Adaptación del Algoritmo:**
+Refactoricé únicamente el método validador isRepeatedSequence utilizando una estrategia de búsqueda de patrones:
+1. Itero sobre las posibles longitudes del patrón.
+2. Compruebo la divisibilidad matemática (len % patternLen == 0).
+3. Reconstruyo el ID esperado usando el método **String.repeat()**.
+
+**Código Expresivo:**
+El uso de String.repeat(repeats) es un ejemplo de código limpio y expresivo. En lugar de escribir un bucle manual para concatenar cadenas, utilizo la API estándar de Java, lo que hace que la intención del código sea clara al primer vistazo.
+
+---
+
+***
+
+## 5. Conclusión
+
+Lo más destacable de este ejercicio es la demostración de **Bajo Acoplamiento**.
+
+Gracias a la arquitectura definida en el punto 2, la transición de la Parte A a la Parte B fue limpia. El método principal y la lógica de Streams permanecieron **idénticos**. El cambio en la regla de negocio (validación matemática) quedó aislado en el método validador, sin romper ni afectar a la infraestructura de procesamiento de datos.
