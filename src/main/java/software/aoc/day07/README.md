@@ -49,34 +49,35 @@ Creé el método `isValid(col)` para encapsular la comprobación de bordes (evit
 
 ---
 
-## 4. Evolución a la Parte B: Explosión Combinatoria
+## 4. Evolución a la Parte B: Simulación Cuántica (Dynamic Programming)
 
-### El Desafío: Rutas vs. Estados
-El requisito cambió, en la Parte B necesitamos cuantificar. Si dos rutas convergen en la misma celda, no queremos saber solo que "hay algo ahí" (Set), queremos saber que "hay 2 rutas acumuladas" (Map)
+### Cambio de Estructura: De Existencia a Cantidad
+En la Parte A usábamos un `Set` (lógica booleana: ¿hay haz?). En la Parte B, el requisito cambia a contar "líneas de tiempo". Esto requiere cambiar la estructura de datos a un **Mapa de Frecuencias**.
 
-`Map<Integer, Long> activeTimelines = new HashMap<>();`
+**Código:**
+```
+Map<Integer, Long> activeTimelines = new HashMap<>();
+// Key (Integer): Columna (Posición)
+// Value (Long): Número de universos paralelos en ese punto
+```
 
+### Algoritmo:
+En lugar de simular partículas individuales, implementé un algoritmo de **Programación Dinámica iterativa**. Procesamos la cuadrícula fila por fila. En cada iteración, `activeTimelines` representa el estado comprimido de todo el sistema en esa altura específica.
 
-### Algoritmo de Acumulación
+### Map.merge()
+La parte más crítica es gestionar la convergencia: ¿Qué pasa cuando dos divisores envían partículas a la misma celda?En lugar de escribir lógica verbosa (`if containsKey... get... put...`), utilicé el método merge.
 
-Busca la letra 'S' en la primera fila e inicia el mapa con 1 ruta en esa columna.
-
-Para cada fila, crea un nuevo mapa nextTimelines (el estado futuro). Recorre las columnas activas actuales:
-
-* Si encuentra un Divisor (^):
-* Intenta enviar el contador actual a la izquierda (col - 1).
-* Intenta enviar el contador actual a la derecha (col + 1).
-
-Efecto: Duplica las líneas de tiempo (si tenías 50 rutas llegando aquí, ahora tienes 50 yendo a la izq y 50 a la der).
-
-Proceso fila por fila acumulando contadores. Si dos rutas llegan al mismo punto, sumo sus valores.
-
-**Código de Fusión (Merge):**
 ```
 private void addTimelines(Map<Integer, Long> map, int col, long count) {
-map.merge(col, count, Long::sum);
+    // Si la clave 'col' no existe, inserta 'count'.
+    // Si ya existe, ejecuta la función de remapping: (oldVal, newVal) -> oldVal + newVal
+    map.merge(col, count, Long::sum); 
 }
 ```
+* `Map.merge`: Atomiza la operación de "buscar, sumar y actualizar", haciendo el código más limpio y eficiente.
+* `Long::sum`: Utilizo una Method Reference como función de acumulación. Esto es programación funcional pura aplicada a una estructura de datos clásica.
 
-> **Defensa:** Esto reduce la complejidad exponencial a lineal. En lugar de simular millones de partículas individuales, simplemente "arrastro" un contador numérico (Long). Usar long es vital para evitar el desbordamiento numérico (Overflow) dado el crecimiento exponencial.
+### Prevención de Desbordamiento (Overflow)
+Dado el crecimiento exponencial de las rutas, el contador supera rápidamente el límite de un int (2 mil millones). Decisión de Diseño: El uso estricto de Long (y primitivos long) en todo el mapa garantiza que la simulación no falle por desbordamiento aritmético silencioso.
+
 
