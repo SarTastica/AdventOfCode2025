@@ -44,54 +44,80 @@ Dividí el problema en dos métodos especialistas:
 
 ---
 
-## 3. Parte A: Escaneo Visual
+## 3. Parte A: Escaneo Visual y Parsing
 
-### Detección de Bloques
-El reto principal es identificar dónde empieza y termina un problema. Utilicé una estrategia de "barrido" columna por columna.
+### Algoritmo de Barrido
+Identificar dónde empieza y termina un problema en un flujo de texto continuo.
 
-**Código de Detección:**
+**Estrategia:**
+Utilizo una lista temporal (`currentBlockCols`) que actúa como **buffer**.
+1.  Si la columna tiene datos, se añade al buffer.
+2.  Si la columna está vacía (separador) **Y** el buffer tiene datos, disparamos la resolución (`solveProblem`) y limpiamos el buffer.
+
+**Código de Control:**
 ```
 if (isEmptyColumn(col, lines)) {
-// Si la columna está vacía, procesamos el bloque acumulado
-grandTotal += solveProblem(currentBlockCols, lines);
-currentBlockCols.clear();
+    if (!currentBlockCols.isEmpty()) {
+        // Disparador: Fin de bloque detectado -> Resolver y Resetear
+        grandTotal += solveProblem(currentBlockCols, lines);
+        currentBlockCols.clear();
+    }
+} else {
+    currentBlockCols.add(col); // Acumulación de estado
 }
 ```
-### Abstracción (Lectura Expresiva)
-Creé el método auxiliar `isEmptyColumn`.
-* **Beneficio:** Oculta los detalles sucios de iterar caracteres y comprobar límites. El código principal se lee como lenguaje natural: "Si es columna vacía, resuelve".
+### Abstracción
+El archivo de entrada es un **Array Irregular** (las líneas tienen distintas longitudes). Acceder a `line.charAt(col)` sin precauciones lanzaría una `StringIndexOutOfBoundsException`.
 
-### Robustez (Parsing)
-Dado que el formato es visual, distinguir un operador (`*`) de un dato inválido es crítico. Utilizo un bloque `try-catch` al intentar parsear números (`Long.parseLong`). Si falla, asumo que es el operador. Esto hace al sistema resiliente a pequeñas variaciones de alineación.
+Para mitigar esto, encapsulé la lógica de acceso seguro en `isEmptyColumn`.
+
+Para una mayor robustez, se verifica `col < line.length()` antes de leer permitiendo que el algoritmo principal trate la entrada como una matriz rectangular perfecta, delegando la complejidad de los límites a este método auxiliar.
+
+### Estrategia de Parsing 
+Dentro de `solveProblem`, extraigo el "segmento" de texto correspondiente al bloque detectado.
+Para distinguir entre números y operadores (`*`, `+`) en un entorno visualmente sucio, utilizo una estrategia de **Fallback**.
+
+**Lógica de Decisión:**
+1.  Se extrae y limpia el segmento (`trim()`).
+2.  Se intenta parsear como `Long`.
+3.  Si falla (bloque `catch` o validación), se asume que es una `Operation` (Enum).
+
+> **Justificación:** Dado que la alineación visual puede variar, esta estrategia es resiliente. No dependemos de posiciones fijas, sino del **tipo de dato** contenido en el segmento para decidir el comportamiento.
 
 ---
 
 ## 4. Evolución a la Parte B: Lectura Vertical
 
-### El Desafío: Arrays Irregulares
 El requisito cambió a leer los números verticalmente. El problema técnico es que el archivo de texto no es un rectángulo perfecto; las líneas tienen **longitudes variables**.
-Acceder a la columna 10 en una línea de longitud 5 provocaría una `StringIndexOutOfBoundsException`.
+
+Si intentamos acceder a la columna 10 en una fila que solo tiene 5 caracteres (fila corta), Java lanzará una `StringIndexOutOfBoundsException`. No podemos asumir una matriz cuadrada.
 
 ### Solución: Diseño Defensivo (`getSafeChar`)
-Implementé un método que actúa como barrera de seguridad.
+Para evitar llenar el código principal de `if-else` para comprobar longitudes, implementé el método `getSafeChar`.
 
 **Código de Seguridad:**
-
+```
 private char getSafeChar(String line, int col) {
-if (col < line.length()) {
-return line.charAt(col);
+    if (col < line.length()) {
+        return line.charAt(col);
+    }
+    return ' '; // Valor por defecto seguro (Null Object Pattern visual)
 }
-return ' '; // Valor por defecto seguro (Null Object Pattern visual)
-}
+```
 
-> **Defensa:** Este método normaliza la entrada. El resto del algoritmo puede "fingir" que la matriz es rectangular, simplificando drásticamente la lógica de los bucles.
+> **Defensa:** Este método normaliza la entrada virtualmente. El algoritmo principal puede "fingir" que la matriz es un rectángulo perfecto lleno de espacios, simplificando drásticamente la lógica de los bucles y eliminando el riesgo de excepciones.
 
-### Eficiencia: StringBuilder
-Para construir los números verticalmente, iteramos por filas.
+### Eficiencia: Construcción Mutable
+Para leer los números, debemos bajar fila por fila en una misma columna.
 
+```
 **Construcción Vertical:**
-```
+
 StringBuilder numBuilder = new StringBuilder();
-for (int row = 0; row < lastRowIndex; row++) { ... }
+for (int row = 0; row < lastRowIndex; row++) { 
+    char c = getSafeChar(lines.get(row), col);
+    if (Character.isDigit(c)) numBuilder.append(c);
+}
 ```
-Usé `StringBuilder` en lugar de concatenación de Strings (`+`) porque estamos modificando el valor repetidamente dentro de un bucle. Esto reduce la complejidad de memoria y tiempo de ejecución.
+> **Defensa Técnica:** Utilicé `StringBuilder` en lugar de la concatenación normal (`s += c`).
+> En Java, los Strings son **inmutables**. Concatenar en un bucle crea un nuevo objeto String en memoria por cada carácter, lo que tendría una complejidad **O(N²)**. `StringBuilder` es mutable, permitiendo una construcción eficiente **O(N)**.
