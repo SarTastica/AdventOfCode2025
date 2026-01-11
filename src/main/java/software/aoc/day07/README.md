@@ -52,18 +52,23 @@ Creé el método `isValid(col)` para encapsular la comprobación de bordes (evit
 ## 4. Evolución a la Parte B: Explosión Combinatoria
 
 ### El Desafío: Rutas vs. Estados
-El requisito cambió de "¿Está activa la celda?" a "¿Cuántas rutas llegan aquí?".
-En un sistema cuántico, cada divisor duplica las rutas. Una recursividad ingenua tendría complejidad **O(2^N)**, lo cual es computacionalmente inviable.
-
-### Solución: Programación Dinámica (Mapas)
-Cambié la estructura de datos de un Set (binario) a un Map (cuantitativo).
+El requisito cambió, en la Parte B necesitamos cuantificar. Si dos rutas convergen en la misma celda, no queremos saber solo que "hay algo ahí" (Set), queremos saber que "hay 2 rutas acumuladas" (Map)
 
 `Map<Integer, Long> activeTimelines = new HashMap<>();`
 
-* **Clave (Integer):** La columna (posición).
-* **Valor (Long):** El número de líneas de tiempo que convergen en ese punto.
 
 ### Algoritmo de Acumulación
+
+Busca la letra 'S' en la primera fila e inicia el mapa con 1 ruta en esa columna.
+
+Para cada fila, crea un nuevo mapa nextTimelines (el estado futuro). Recorre las columnas activas actuales:
+
+* Si encuentra un Divisor (^):
+* Intenta enviar el contador actual a la izquierda (col - 1).
+* Intenta enviar el contador actual a la derecha (col + 1).
+
+Efecto: Duplica las líneas de tiempo (si tenías 50 rutas llegando aquí, ahora tienes 50 yendo a la izq y 50 a la der).
+
 Proceso fila por fila acumulando contadores. Si dos rutas llegan al mismo punto, sumo sus valores.
 
 **Código de Fusión (Merge):**
