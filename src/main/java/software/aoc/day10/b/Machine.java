@@ -1,142 +1,88 @@
 package software.aoc.day10.b;
 
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class Machine {
+    private final List<Long> targets;
+    private final Map<List<Long>, Integer> patterns = new HashMap<>();
 
-    private List<List<Integer>> buttons;
-    private List<Integer> joltageRequirements;
-    private Boolean[][] buttonInfluences;
-    private Map<List<Integer>, Integer> joltageIncrToNrPresses;
+    public Machine(String line) {
+        String targetStr = line.substring(line.indexOf('{') + 1, line.indexOf('}'));
+        this.targets = Arrays.stream(targetStr.split(","))
+                .map(s -> Long.parseLong(s.trim()))
+                .collect(Collectors.toList());
 
-    public Machine(final String line) {
-        parse(line);
-        calculatePatterns();
+        List<List<Integer>> buttons = new ArrayList<>();
+        String[] btnParts = line.substring(line.indexOf(']') + 1, line.indexOf('{')).split("\\)");
+        for (String part : btnParts) {
+            if (part.isBlank()) continue;
+            String clean = part.replace("(", "").trim();
+            if (clean.isEmpty()) { buttons.add(List.of()); continue; }
+
+            buttons.add(Arrays.stream(clean.split(","))
+                    .map(s -> Integer.parseInt(s.trim()))
+                    .collect(Collectors.toList()));
+        }
+
+        int limit = 1 << buttons.size();
+        int numRegisters = targets.size();
+
+        for (int mask = 0; mask < limit; mask++) {
+            List<Long> effect = new ArrayList<>(Collections.nCopies(numRegisters, 0L));
+            int cost = 0;
+
+            for (int i = 0; i < buttons.size(); i++) {
+                if ((mask & (1 << i)) != 0) {
+                    cost++;
+                    for (int regIndex : buttons.get(i)) {
+                        if (regIndex < numRegisters) {
+                            effect.set(regIndex, effect.get(regIndex) + 1);
+                        }
+                    }
+                }
+            }
+            if (!patterns.containsKey(effect) || cost < patterns.get(effect)) {
+                patterns.put(effect, cost);
+            }
+        }
     }
 
     public long solveMinJoltagePresses() {
-        int result = getNrOfPressesForVoltages(joltageRequirements, new HashMap<>());
-        return (long) result;
+        return solve(targets, new HashMap<>());
     }
 
-    private int getNrOfPressesForVoltages(final List<Integer> current, final Map<List<Integer>, Integer> memoMap) {
-        if (current.stream().allMatch(i -> i == 0)) {
-            return 0;
-        }
-        if (memoMap.containsKey(current)) {
-            return memoMap.get(current);
-        }
+    private long solve(List<Long> current, Map<List<Long>, Long> memo) {
+        if (current.stream().allMatch(v -> v == 0)) return 0;
+        if (memo.containsKey(current)) return memo.get(current);
 
-        int minTotalPresses = Integer.MAX_VALUE;
+        long minCost = Long.MAX_VALUE;
 
-        for (final Entry<List<Integer>, Integer> entry : joltageIncrToNrPresses.entrySet()) {
-            final List<Integer> pattern = entry.getKey();
+        for (Map.Entry<List<Long>, Integer> entry : patterns.entrySet()) {
+            List<Long> pattern = entry.getKey();
+            int patternCost = entry.getValue();
 
-            if (isValid(current, pattern)) {
-                final List<Integer> newGoal = new ArrayList<>(current.size());
-                for (int i = 0; i < current.size(); i++) {
-                    newGoal.add((current.get(i) - pattern.get(i)) / 2);
+            List<Long> nextState = new ArrayList<>();
+            boolean valid = true;
+
+            for (int i = 0; i < current.size(); i++) {
+                long diff = current.get(i) - pattern.get(i);
+                if (diff < 0 || diff % 2 != 0) {
+                    valid = false;
+                    break;
                 }
-
-                // Recursión
-                final int pressesForRest = getNrOfPressesForVoltages(newGoal, memoMap);
-
-                if (pressesForRest < Integer.MAX_VALUE) {
-                    minTotalPresses = Math.min(minTotalPresses, entry.getValue() + (2 * pressesForRest));
-                }
+                nextState.add(diff / 2);
             }
-        }
 
-        memoMap.put(current, minTotalPresses);
-        return minTotalPresses;
-    }
-
-    private boolean isValid(final List<Integer> current, final List<Integer> pattern) {
-        for (int i = 0; i < pattern.size(); i++) {
-            final int incr = pattern.get(i);
-            final int cur = current.get(i);
-            if (!(incr <= cur && Math.abs(incr % 2) == Math.abs(cur % 2))) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private void calculatePatterns() {
-        final int nrPatterns = (int) Math.pow(2, buttons.size());
-        joltageIncrToNrPresses = new HashMap<>();
-
-        for (int i = 0; i < nrPatterns; i++) {
-            final List<Integer> joltageIncreases = new ArrayList<>(Collections.nCopies(joltageRequirements.size(), 0));
-
-            final String binary = getBinaryRepresentation(i);
-            int nrButtonsPressed = 0;
-
-            for (int buttonNr = 0; buttonNr < binary.length(); buttonNr++) {
-                if (binary.charAt(buttonNr) == '1') {
-                    final Boolean[] influence = buttonInfluences[buttonNr];
-                    for (int k = 0; k < influence.length; k++) {
-                        if (influence[k]) {
-                            joltageIncreases.set(k, joltageIncreases.get(k) + 1);
-                        }
-                    }
-                    nrButtonsPressed++;
+            if (valid) {
+                long costRest = solve(nextState, memo);
+                if (costRest != Long.MAX_VALUE) {
+                    minCost = Math.min(minCost, patternCost + 2 * costRest);
                 }
             }
-
-            if (!joltageIncrToNrPresses.containsKey(joltageIncreases)
-                    || joltageIncrToNrPresses.get(joltageIncreases) > nrButtonsPressed) {
-                joltageIncrToNrPresses.put(joltageIncreases, nrButtonsPressed);
-            }
-        }
-    }
-
-    private void parse(final String line) {
-        String buttonsSegment = line.substring(line.indexOf("]") + 1, line.indexOf("{")).trim();
-        String[] rawButtons = buttonsSegment.split("\\)");
-
-        buttons = new ArrayList<>();
-        for (String rawBtn : rawButtons) {
-            if (rawBtn.isBlank()) continue;
-            String clean = rawBtn.replace("(", "").replace(",", " ").trim();
-            if (clean.isEmpty()) {
-                buttons.add(new ArrayList<>());
-                continue;
-            }
-            List<Integer> wiring = Arrays.stream(clean.split("\\s+"))
-                    .map(Integer::parseInt)
-                    .collect(Collectors.toList());
-            buttons.add(wiring);
         }
 
-        final String joltageReqsString = line.substring(line.indexOf("{") + 1, line.indexOf("}"));
-        joltageRequirements = Arrays.stream(joltageReqsString.split(","))
-                .map(String::trim)
-                .map(Integer::parseInt)
-                .collect(Collectors.toList());
-
-        buttonInfluences = new Boolean[buttons.size()][joltageRequirements.size()];
-        for (int i = 0; i < buttons.size(); i++) {
-            final Boolean[] influence = new Boolean[joltageRequirements.size()];
-            Arrays.fill(influence, false);
-            final List<Integer> button = buttons.get(i);
-            for (final int j : button) {
-                if (j < influence.length) {
-                    influence[j] = true;
-                }
-            }
-            buttonInfluences[i] = influence;
-        }
-    }
-
-    private String getBinaryRepresentation(final int i) {
-        final StringBuilder sb = new StringBuilder(Integer.toBinaryString(i)).reverse();
-        while (sb.length() < buttons.size()) {
-            sb.append('0');
-        }
-        return sb.toString().substring(0, buttons.size());
+        memo.put(current, minCost);
+        return minCost;
     }
 }
