@@ -59,7 +59,6 @@ for (int i = 0; i < limit; i++) {
     union(parent, conn.indexA, conn.indexB);
 }`
 
-```
 
 ### Cálculo con Streams
 Para el resultado final (producto de los 3 grupos más grandes), utilicé un flujo declarativo: `agrupar -> ordenar -> limitar -> reducir`. Esto evita un "código espagueti" de bucles y contadores temporales.
@@ -69,14 +68,24 @@ Para el resultado final (producto de los 3 grupos más grandes), utilicé un flu
 ## 4. Evolución a la Parte B: Árbol de Expansión Mínima (MST)
 
 ### El Desafío
-El objetivo cambió de "hacer 1000 conexiones" a "conectar todo el sistema con el mínimo cable". Esto es la definición de libro del **Algoritmo de Kruskal**.
+El objetivo cambió de "hacer 1000 conexiones" a "conectar todo el sistema con el mínimo cable". Esto es la definición del algoritmo **Algoritmo de Kruskal**.
 
-### Implementación: Kruskal con Parada Temprana
+### Preparación
+Genero primero un grafo completo para ordenar todas las conexiones de más cortas a más larga
+`List<Connection> allConnections = new ArrayList<>();
+for (int i = 0; i < n; i++) {
+    for (int j = i + 1; j < n; j++) {
+        // ... calcula distancia y añade a la lista
+    }
+}
+Collections.sort(allConnections);`
+
+### Implementación
 Adapté el algoritmo anterior. En lugar de iterar un número fijo de veces, llevo un contador de componentes (`numComponents`).
 Inicialmente hay N componentes (cada caja aislada). Cada vez que uno dos grupos distintos, resto 1.
 
 **Condición de Parada (Eficiencia):**
-En el momento exacto en que `numComponents == 1`, sé que el grafo es totalmente conexo (MST completo). Detengo el algoritmo inmediatamente.
+En el momento exacto en que `numComponents == 1`, sé que el grafo es totalmente conexo. Detengo el algoritmo inmediatamente.
 
 **Código de la Lógica Central:**
 ```
@@ -89,14 +98,10 @@ int rootB = find(parent, conn.indexB);
         numComponents--; // Reducimos el número de islas
         
         if (numComponents == 1) {
-            // ¡Conectado! Devolvemos el resultado de esta última conexión
+            // Conectado, devolvemos el resultado de esta última conexión
             return calculateResult(points, conn); 
         }
     }
 }
 ```
-### Optimización: Path Compression
-En el método `find`, uso la técnica de **Compresión de Caminos**: `parent[i] = find(...)`. Esto "aplana" el árbol cada vez que buscamos, haciendo que las futuras búsquedas sean casi instantáneas (O(1) amortizado).
-
----
 
