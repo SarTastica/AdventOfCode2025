@@ -72,13 +72,15 @@ El objetivo cambió de "hacer 1000 conexiones" a "conectar todo el sistema con e
 
 ### Preparación
 Genero primero un grafo completo para ordenar todas las conexiones de más cortas a más larga
-`List<Connection> allConnections = new ArrayList<>();
+```
+List<Connection> allConnections = new ArrayList<>();
 for (int i = 0; i < n; i++) {
     for (int j = i + 1; j < n; j++) {
         // ... calcula distancia y añade a la lista
     }
 }
-Collections.sort(allConnections);`
+Collections.sort(allConnections);
+```
 
 ### Implementación
 Adapté el algoritmo anterior. En lugar de iterar un número fijo de veces, llevo un contador de componentes (`numComponents`).
