@@ -26,8 +26,7 @@ Encargada del algoritmo de conexión.
 **3. Connection (Clase Interna Estática):**
 Modelé la conexión (punto A, punto B, distancia) como una `private static class`.
 
-**¿Por qué Estática?**
-Una conexión es un dato puro que no necesita acceder al estado del `CircuitManager`. Al hacerla estática y `Comparable`, facilito su ordenación (`Collections.sort`) y optimizo la memoria.
+* Una conexión es un dato puro que no necesita acceder al estado del `CircuitManager`. Al hacerla estática y `Comparable`, facilito su ordenación (`Collections.sort`) y optimizo la memoria.
 
 ---
 
@@ -39,20 +38,27 @@ Para gestionar qué cajas están conectadas con cuáles, utilicé la estructura 
 **Implementación (Find & Union):**
 Utilizo un array `parent` donde cada índice apunta a su nodo padre.
 
-**Código (Métodos Auxiliares):**
-```
-private int find(int[] parent, int i) {
-if (parent[i] == i) return i;
-return find(parent, parent[i]); // Recursión para encontrar la raíz
-}
+El método Find busca el lider i y el método Union une dos grupos.
 
-private void union(int[] parent, int i, int j) {
-int rootA = find(parent, i);
-int rootB = find(parent, j);
-if (rootA != rootB) {
-parent[rootA] = rootB; // Fusión de conjuntos
-}
-}
+
+**Método calculateCircuitScore**
+
+Este método osquesta todo:
+* Genera todas las conexiones
+* `for (int i = 0; i < n; i++) {
+    for (int j = i + 1; j < n; j++) {
+        // Calcula distancia entre TODOS los pares posibles
+        allConnections.add(new Connection(i, j, dist));
+    }
+}` 
+* Se ordena la lista de la distancia de la más corta a la más larga
+* `Collections.sort(allConnections);`
+* Toma solo las primeras 1000 conexiones (más cortas) y las une con el método find-union
+* `int limit = Math.min(1000, allConnections.size());
+for (int i = 0; i < limit; i++) {
+    union(parent, conn.indexA, conn.indexB);
+}`
+
 ```
 
 ### Cálculo con Streams
