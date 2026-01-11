@@ -1,55 +1,42 @@
 package software.aoc.day12.a;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Shape {
     private final int id;
-    private final Set<Point> points;
     private final List<Set<Point>> variations;
 
     public Shape(int id, Set<Point> rawPoints) {
         this.id = id;
-        this.points = normalize(rawPoints);
-        this.variations = generateVariations();
+        this.variations = generateVariations(normalize(rawPoints));
     }
 
     public int getId() { return id; }
-    public int getArea() { return points.size(); }
+    public int getArea() { return variations.get(0).size(); }
     public List<Set<Point>> getVariations() { return variations; }
 
-    private List<Set<Point>> generateVariations() {
+    private List<Set<Point>> generateVariations(Set<Point> base) {
         Set<Set<Point>> uniqueVars = new HashSet<>();
-        Set<Point> current = this.points;
+        Set<Point> current = base;
 
         for (int i = 0; i < 4; i++) {
             uniqueVars.add(normalize(current));
-            Set<Point> flipped = new HashSet<>();
-            for (Point p : current) flipped.add(p.flip());
-            uniqueVars.add(normalize(flipped));
-            Set<Point> rotated = new HashSet<>();
-            for (Point p : current) rotated.add(p.rotate());
-            current = rotated;
-        }
 
+            Set<Point> flipped = current.stream().map(Point::flip).collect(Collectors.toSet());
+
+            uniqueVars.add(normalize(flipped));
+
+            current = current.stream().map(Point::rotate).collect(Collectors.toSet());
+        }
         return new ArrayList<>(uniqueVars);
     }
 
     private Set<Point> normalize(Set<Point> input) {
-        int minR = Integer.MAX_VALUE;
-        int minC = Integer.MAX_VALUE;
-        for (Point p : input) {
-            minR = Math.min(minR, p.r);
-            minC = Math.min(minC, p.c);
-        }
-        Set<Point> normalized = new HashSet<>();
-        for (Point p : input) {
-            normalized.add(new Point(p.r - minR, p.c - minC));
-        }
-        return normalized;
+        int minR = input.stream().mapToInt(p -> p.r).min().orElse(0);
+        int minC = input.stream().mapToInt(p -> p.c).min().orElse(0);
+        return input.stream()
+                .map(p -> new Point(p.r - minR, p.c - minC))
+                .collect(Collectors.toSet());
     }
 }
