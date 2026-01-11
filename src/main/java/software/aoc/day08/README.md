@@ -41,7 +41,7 @@ Utilizo un array `parent` donde cada índice apunta a su nodo padre.
 El método Find busca el lider i y el método Union une dos grupos.
 
 
-**Método calculateCircuitScore**
+### Método calculateCircuitScore
 
 Este método osquesta todo:
 * Genera todas las conexiones
