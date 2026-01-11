@@ -55,7 +55,7 @@ Utilizo una lista temporal (`currentBlockCols`) que actúa como **buffer**.
 2.  Si la columna está vacía (separador) **Y** el buffer tiene datos, disparamos la resolución (`solveProblem`) y limpiamos el buffer.
 
 **Código de Control:**
-
+```
 if (isEmptyColumn(col, lines)) {
     if (!currentBlockCols.isEmpty()) {
         // Disparador: Fin de bloque detectado -> Resolver y Resetear
@@ -65,7 +65,7 @@ if (isEmptyColumn(col, lines)) {
 } else {
     currentBlockCols.add(col); // Acumulación de estado
 }
-
+```
 ### Abstracción
 El archivo de entrada es un **Array Irregular** (las líneas tienen distintas longitudes). Acceder a `line.charAt(col)` sin precauciones lanzaría una `StringIndexOutOfBoundsException`.
 
