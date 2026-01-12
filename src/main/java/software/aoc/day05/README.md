@@ -41,7 +41,7 @@ Este método auxiliar es el motor de búsqueda.
 
 Defensa: Utilicé `anyMatch` de la API de Streams porque no recorre toda la lista, sino que en el momento exacto en que encuentra el primer rango que contiene al ID, devuelve true y detiene la búsqueda. 
 
-###3. Método Principal countFreshIngredients (Orquestación)
+### 3. Método Principal countFreshIngredients (Orquestación)
 
 Finalmente, el método principal conecta los datos.
 ```
@@ -66,7 +66,7 @@ public int compareTo(Range other) {
 
 > Defensa: Esto me permite usar `Collections.sort(ranges)`. Ordenar los rangos por su punto de inicio es un prerrequisito matemático para poder resolver el problema en una sola pasada lineal (O(N))
 
-###2. Algoritmo de Fusión (El Núcleo Lógico)
+### 2. Algoritmo de Fusión (El Núcleo Lógico)
 
 Iteramos la lista ordenada comparando el rango `current` (actual) con el `next` (siguiente).
 ```
