@@ -17,6 +17,11 @@ Un archivo de texto que representa "hojas de cálculo" donde los problemas matem
 
 El diseño se basa en separar la **Lógica Espacial** (dónde está el problema) de la **Lógica Matemática** (cómo se resuelve).
 
+### Responsabilidad Única (SRP)
+Dividí el problema en dos métodos especialistas:
+1.  **calculateGrandTotal (El Escáner):** Solo sabe de coordenadas y espacios vacíos. Detecta bloques.
+2.  **solveProblem (El Intérprete):** Solo sabe de números y operadores. Procesa un bloque aislado.
+
 ### Enum con Comportamiento (Polimorfismo)
 En lugar de usar condicionales (`if/switch`) dispersos para calcular, encapsulé la lógica en un `enum Operation`.
 
@@ -37,10 +42,6 @@ abstract long apply(long a, long b);
 
 > **Defensa (OCP):** Esto respeta el principio **Open/Closed**. Si mañana añaden divisiones, solo añado una constante al Enum sin tocar el algoritmo de resolución.
 
-### Responsabilidad Única (SRP)
-Dividí el problema en dos métodos especialistas:
-1.  **calculateGrandTotal (El Escáner):** Solo sabe de coordenadas y espacios vacíos. Detecta bloques.
-2.  **solveProblem (El Intérprete):** Solo sabe de números y operadores. Procesa un bloque aislado.
 
 ---
 
@@ -51,23 +52,24 @@ Identificar dónde empieza y termina un problema en un flujo de texto continuo.
 
 **Estrategia:**
 Utilizo una lista temporal (`currentBlockCols`) que actúa como **buffer**.
-1.  Si la columna tiene datos, se añade al buffer.
+1.  Si la columna tiene datos, se añade al buffer
+```
+} else {
+    currentBlockCols.add(col); // Aquí se añade al buffer si NO está vacía
+}
+```
 2.  Si la columna está vacía (separador) **Y** el buffer tiene datos, disparamos la resolución (`solveProblem`) y limpiamos el buffer.
 
 **Código de Control:**
 ```
 if (isEmptyColumn(col, lines)) {
     if (!currentBlockCols.isEmpty()) {
-        // Disparador: Fin de bloque detectado -> Resolver y Resetear
         grandTotal += solveProblem(currentBlockCols, lines);
         currentBlockCols.clear();
     }
-} else {
-    currentBlockCols.add(col); // Acumulación de estado
-}
 ```
 ### Abstracción
-El archivo de entrada es un **Array Irregular** (las líneas tienen distintas longitudes). Acceder a `line.charAt(col)` sin precauciones lanzaría una `StringIndexOutOfBoundsException`.
+El archivo de entrada las líneas tienen distintas longitudes, por lo que acceder a `line.charAt(col)` sin precauciones lanzaría una `StringIndexOutOfBoundsException`.
 
 Para mitigar esto, encapsulé la lógica de acceso seguro en `isEmptyColumn`.
 
