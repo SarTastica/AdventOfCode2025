@@ -29,7 +29,7 @@ Para resolver este problema, he diseñado una estructura basada en el **Agrupami
 
 ## 3. Parte A: Validación con Streams (Clase Range y Filtrado)
 
-###1. Clase Interna Range (Encapsulamiento)
+### 1. Clase Interna Range (Encapsulamiento)
 
 Primero, definí una clase interna estática `Range`. Su responsabilidad es parsear su propia entrada y validar si un número le pertenece.
 
