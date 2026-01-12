@@ -68,15 +68,24 @@ Implementa el algoritmo BFS (Búsqueda en Anchura) para encontrar el camino más
 
 ## 4. Parte B: Recursión y Descomposición Binaria
 
-### 1. Método Machine (Constructor)
-**Parsing y Pre-cálculoExtracción:**
-* Convierte los Strings de entrada en Listas de Long (objetivos) y Integer (botones).
-* Generación de Patrones: Calcula todas las combinaciones posibles de pulsar los botones una sola vez (2^N) utilizando un bucle de máscaras de bits.
-* Almacena en un Mapa (patterns) qué "efecto" produce cada combinación y su coste mínimo. Esto evita recalcular combinaciones durante la recursión.
+### 1. El Constructor: Pre-cálculo Estratégico
 
-### 2. Método solve (Recursivo)
-**Algoritmo: Divide y Vencerás**
-* Memoización: Usa un mapa (memo) para guardar estados resueltos y podar ramas del árbol. 
-* Lógica de Paridad: Busca un patrón pre-calculado tal que (objetivo - patrón) sea par y no negativo.
-* Reducción de Estado: Si es válido, divide el residuo por 2 (diff / 2), resolviendo el problema bit a bit (de menor a mayor peso).
-* Cálculo de Coste: Coste = Coste_Patrón + (2 * Coste_Recursivo). Multiplica por 2 porque el siguiente nivel recursivo afecta a una potencia binaria superior.
+Antes de empezar a resolver, el constructor prepara el terreno. Dado que el número de botones es pequeño, decidí pre-calcular todos los movimientos posibles de un solo turno.
+
+**Generación de Patrones**: 
+
+* Utilizo un bucle de máscaras de bits (1 << numButtons) para probar todas las combinaciones posibles de botones pulsados simultáneamente.
+* Mapeo Efecto-Coste: Guardo el resultado en el mapa patterns. La clave es el Efecto (cuánto suma a los registros) y el valor es el Coste Mínimo (cuántos botones se usaron).
+* Defensa: En lugar de probar combinaciones de botones una y otra vez durante la recursividad, consulto este mapa pre-calculado en tiempo constante O(1).
+
+### 2. Método solve: Ingeniería Inversa (Recursividad)
+
+El problema original multiplica el estado por 2 en cada paso. Simular eso hacia adelante genera un árbol infinito. Por eso, aplico Ingeniería Inversa: empiezo en el Target e intento llegar a 0 dividiendo por 2.
+
+**El Algoritmo (Paso a Paso):**
+
+* Caso Base y Memoización: Si llego a 0, el coste es 0. Uso un mapa memo para almacenar estados ya resueltos y evitar re-calcular ramas idénticas.
+* Lógica de Paridad: Itero sobre los patrones pre-calculados. Para que un movimiento sea válido en reversa, la diferencia `(EstadoActual - Patrón)` debe ser PAR `(diff % 2 == 0)`.
+* "Transición de Estado: "Si es válido, el siguiente estado recursivo es `diff / 2`. Estamos deshaciendo la multiplicación.
+* Cálculo de Coste Ponderado: Fórmula: `minCost = PatrónCost + (2 * RestoCost)`. Sumo el coste de los botones de este turno y multiplico por 2 el coste restante porque, al estar deshaciendo una división, las acciones futuras (que en realidad ocurrieron en el pasado) tienen un peso exponencialmente mayor en la estructura binaria."
+
