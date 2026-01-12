@@ -68,15 +68,48 @@ Implementa el algoritmo BFS (Búsqueda en Anchura) para encontrar el camino más
 
 ## 4. Parte B: Recursión y Descomposición Binaria
 
-### 1. El Constructor: Pre-cálculo Estratégico
+### 1. El Constructor: Parsing y Pre-cálculoFase 
 
-Antes de empezar a resolver, el constructor prepara el terreno. Dado que el número de botones es pequeño, decidí pre-calcular todos los movimientos posibles de un solo turno.
+**Parsing:** Primero, transformo la entrada de texto crudo. Extraigo los números objetivo (targets) y convierto la definición de los botones en listas de enteros, donde cada lista indica qué registros incrementa ese botón.
 
-**Generación de Patrones**: 
+**Pre-cálculo de Combinaciones (La Estrategia):** Dado que el número de botones es manejable, aplico fuerza bruta local para optimizar la búsqueda posterior.
 
-* Utilizo un bucle de máscaras de bits (1 << numButtons) para probar todas las combinaciones posibles de botones pulsados simultáneamente.
-* Mapeo Efecto-Coste: Guardo el resultado en el mapa patterns. La clave es el Efecto (cuánto suma a los registros) y el valor es el Coste Mínimo (cuántos botones se usaron).
-* Defensa: En lugar de probar combinaciones de botones una y otra vez durante la recursividad, consulto este mapa pre-calculado en tiempo constante O(1).
+* Bucle de Máscaras: Utilizo un desplazamiento de bits `(1 << N)` para iterar sobre todas las combinaciones posibles de pulsar botones simultáneamente en un solo turno.
+```
+int limit = 1 << buttons.size(); // 2 elevado a N (Total de combinaciones)
+int numRegisters = targets.size();
+
+for (int mask = 0; mask < limit; mask++) { ... }
+```
+
+* Cálculo de Efecto: Para cada combinación, sumo los efectos de los botones activos y calculo su coste (cantidad de pulsaciones).
+```
+List<Long> effect = new ArrayList<>(Collections.nCopies(numRegisters, 0L));
+int cost = 0;
+
+for (int i = 0; i < buttons.size(); i++) {
+    // Si el bit 'i' está encendido en la máscara...
+    if ((mask & (1 << i)) != 0) { 
+        cost++; // Me cuesta 1 pulsación más
+        
+        // Sumo +1 a los registros que afecta este botón
+        for (int regIndex : buttons.get(i)) {
+            if (regIndex < numRegisters) {
+                effect.set(regIndex, effect.get(regIndex) + 1);
+            }
+        }
+    }
+}
+```
+
+* Tabla de Optimización (patterns): Guardo en un HashMap el resultado: Clave (Efecto en los registros) -> Valor (Coste mínimo).
+```
+if (!patterns.containsKey(effect) || cost < patterns.get(effect)) {
+    patterns.put(effect, cost);
+}
+```
+
+> Defensa:Esto transforma un problema de búsqueda complejo en una búsqueda en tabla hash. Durante la fase recursiva, en lugar de probar combinaciones de botones, simplemente consulto este mapa en tiempo constante O(1)."
 
 ### 2. Método solve: Ingeniería Inversa (Recursividad)
 
