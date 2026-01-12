@@ -27,84 +27,74 @@ Para resolver este problema, he diseñado una estructura basada en el **Agrupami
 * **Eficiencia:** Al ser static, no necesita acceder a la instancia de InventoryManager, lo que optimiza la memoria y deja claro que es una entidad de datos independiente.
 
 
-## 3. Parte A: Validación y Filtrado con Streams
+## 3. Parte A: Validación con Streams (Clase Range y Filtrado)
 
-### Clase Range
+###1. Clase Interna Range (Encapsulamiento)
 
-Para garantizar la integridad de los datos, delegué la lógica de parseo al constructor de la clase `Range`.
+Primero, definí una clase interna estática `Range`. Su responsabilidad es parsear su propia entrada y validar si un número le pertenece.
 
-```
-public Range(String rangeStr) {
-String[] parts = rangeStr.split("-");
-this.start = Long.parseLong(parts[0]);
-this.end = Long.parseLong(parts[1]);
-}
-```
+> Defensa: Al mover el `split` y el `parseLong` al constructor, libero a la clase principal de lidiar con formatos de texto. 
 
-### Abstracción de la Lógica de Negocio
-El método `isFresh` actúa como una fachada que oculta la complejidad de la búsqueda.
+### 2. Método isFresh (Búsqueda Eficiente)
 
+Este método auxiliar es el motor de búsqueda.
 
-```
-private boolean isFresh(long id, List<Range> ranges) {
-return ranges.stream().anyMatch(range -> range.contains(id));
-}
-```
+Defensa: Utilicé `anyMatch` de la API de Streams porque no recorre toda la lista, sino que en el momento exacto en que encuentra el primer rango que contiene al ID, devuelve true y detiene la búsqueda. 
 
-Utilicé `anyMatch` en lugar de filtrar toda la lista. `anyMatch` es una operación de **cortocircuito**: en cuanto encuentra el *primer* rango que contiene al ID, detiene la búsqueda y devuelve `true`. Esto es mucho más eficiente que recorrer toda la lista innecesariamente.
+###3. Método Principal countFreshIngredients (Orquestación)
 
-### Pipeline
-El método principal orquesta el flujo sin bucles explícitos.
-
-
+Finalmente, el método principal conecta los datos.
 ```
 return availableIds.stream()
-.filter(id -> isFresh(id, freshRanges))
-.count();
+        .filter(id -> isFresh(id, freshRanges))
+        .count();
+```
+
+> Defensa: el algoritmo principal es puramente declarativo 'de los IDs disponibles, filtra los que sean frescos y cuéntalos'. 
+
+## 4. Evolución a la Parte B: Fusión de Intervalos (Merge Intervals)
+
+### 1. Preparación: Interfaz Comparable
+
+Para fusionar intervalos eficientemente, primero deben estar ordenados. Por eso modifiqué la clase Range para implementar Comparable.
+```
+@Override
+public int compareTo(Range other) {
+    return Long.compare(this.start, other.start);
+}
 ````
 
-La lectura es directa: "Del flujo de IDs, filtra los que sean frescos y cuéntalos". Esto reduce la carga cognitiva al leer el código (Programación Declarativa).
+> Defensa: Esto me permite usar `Collections.sort(ranges)`. Ordenar los rangos por su punto de inicio es un prerrequisito matemático para poder resolver el problema en una sola pasada lineal (O(N))
 
-## 4. Evolución a la Parte B: Algoritmo de Fusión
+###2. Algoritmo de Fusión (El Núcleo Lógico)
 
-### Preparación de Datos (Comparable)
-El algoritmo de fusión requiere que los intervalos estén ordenados cronológicamente.
-
-**Código (Interfaz Comparable):**
-```
-public int compareTo(Range other) {
-return Long.compare(this.start, other.start);
-}
-```
-Implementar `Comparable` permite delegar el ordenamiento a `Collections.sort(ranges)`. Java utiliza internamente **Timsort** (un híbrido de MergeSort y InsertionSort), que es altamente eficiente (O(N log N)) para datos parcialmente ordenados.
-
-### Lógica de Fusión (Merge Logic)
-El núcleo de la solución es un bucle que gestiona el solapamiento.
-
-**Código (Fusión):**
+Iteramos la lista ordenada comparando el rango `current` (actual) con el `next` (siguiente).
 ```
 if (next.start <= current.end) {
-// Caso: Solapamiento
-current.end = Math.max(current.end, next.end);
+    // Caso A: Solapamiento
+    current.end = Math.max(current.end, next.end);
 } else {
-// Caso: Hueco (Gap)
-mergedRanges.add(current);
-current = next;
+    // Caso B: Hueco (Gap)
+    mergedRanges.add(current);
+    current = next;
 }
 ```
-* **Solapamiento:** Si el siguiente rango empieza *antes* de que termine el actual, son parte del mismo bloque. Extendemos el final del actual usando `Math.max` (para cubrir ambos).
-* **Hueco:** Si no se tocan, cerramos el rango `current`, lo guardamos en la lista de resultados y comenzamos uno nuevo.
 
-### Cálculo Final (Encapsulamiento)
-Para obtener el resultado, sumamos las longitudes de los rangos ya fusionados.
+Defensa: 
+* `next.start <= current.end` "Si el siguiente rango empieza antes de que termine el actual, significa que se solapan o son contiguos.
+* Usamos `Math.max` porque un rango podría estar totalmente contenido dentro de otro.
+* El else: Si no se tocan, significa que hay un hueco. Guardamos el rango actual como 'cerrado' en la lista de resultados `mergedRanges` y convertimos el siguiente rango en el nuevo current.
 
-**Código (Suma):**
+### 3. Cálculo Final (Suma de Longitudes)
+
+Una vez que tenemos los rangos fusionados (sin solapamientos), solo queda sumar sus tamaños.
 ```
-return mergedRanges.stream()
-.mapToLong(Range::length)
-.sum();
+return mergedRanges.stream()a
+        .mapToLong(Range::length)
+        .sum();
 
-// En clase Range:
+// En Range:
 public long length() { return end - start + 1; }
-````
-(SRP):El cálculo de la longitud (`end - start + 1`) está encapsulado en `Range`. La clase principal no necesita saber si los rangos son inclusivos (+1) o exclusivos. Esto protege al algoritmo principal de cambios en la definición de "longitud".
+```
+
+> Defensa: Delegué el cálculo matemático a Range::length. Nótese el +1: en rangos inclusivos (ej: 5-5 tiene longitud 1), esta aritmética es propensa a errores si se hace manualmente en el bucle principal. Encapsularlo garantiza la corrección."
