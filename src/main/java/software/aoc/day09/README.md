@@ -57,48 +57,44 @@ long height = Math.abs(t1.y - t2.y) + 1;
 
 ## 4. Evolución a la Parte B: Geometría Computacional
 
-El problema pasa de ser un simple conteo a un problema de **topología**: debemos encontrar el rectángulo de mayor área que pueda inscribirse dentro de un perímetro irregular (las baldosas rojas). Esto implica validar si una figura geométrica está **estrictamente contenida** dentro de otra.
+### 1. Modelado del Problema (Polygon API)
 
-### Estrategia: Reutilización de Librerías Estándar (`java.awt`)
-
-En lugar de implementar algoritmos geométricos complejo, opté por utilizar la robustez de la API gráfica de Java.
+En la Parte B, el problema se convierte en un reto de **Topología**: verificar si un rectángulo está estrictamente contenido dentro de un perímetro irregular. Utilizo la clase java.awt.Polygon del JDK, que ya contiene algoritmos de intersección altamente optimizados y probados.
 
 **Código:**
 ```
-Polygon boundary = new Polygon(xPoints, yPoints, nPoints);
+java.awt.Polygon boundary = new java.awt.Polygon();
+for (Tile t : tiles) {
+    boundary.addPoint(t.x, t.y);
+}
 ```
 
-Defensa (Fiabilidad y Eficiencia):
-Aplico el principio de "No Reinventar la Rueda". La clase `java.awt.Polygon` implementa internamente algoritmos de intersección altamente optimizados.
+### 2. Estrategia de Búsqueda y Optimización
 
-### El Problema Crítico: Las Reglas de Rasterizado
+Para encontrar la solución, itero sobre todos los pares posibles de baldosas usándolas como esquinas opuestas del rectángulo candidato.
 
-Al usar `boundary.contains(rect)`, nos enfrentamos a una limitación técnica de la librería: Las reglas de inclusión de bordes. Para evitar que dos polígonos adyacentes compartan los mismos píxeles en el borde, los métodos `contains` suelen considerar los bordes derechos e inferiores como "abiertos" (excluidos).
+Código (Cláusula de Guarda):
+```
+int width = Math.abs(t1.x - t2.x);
+int height = Math.abs(t1.y - t2.y);
+// Descartar líneas planas inmediatamente
+if (width == 0 || height == 0) continue;
+```
 
-* Consecuencia: Si nuestro rectángulo válido toca exactamente la pared del cine (comparte coordenadas), el método nativo devuelve false (falso negativo), descartando una solución válida.
+> Defensa (Eficiencia):Antes de realizar cualquier cálculo geométrico costoso, aplico una Cláusula de Guarda. Descarto inmediatamente figuras con dimensiones nulas, ahorrando ciclos de CPU valiosos y evitando comprobaciones innecesarias.
 
-### La Solución Epsilon
+### 3. El Núcleo Lógico: Validación con "Epsilon Shrinking"
 
-Es un número muy pequeño que se utiliza como margen de seguridad para mitigar la limitación del rasterizado sin perder precisión lógica implementando una técnica de contracción de límites.
-
+Las librerías gráficas suelen excluir los bordes exactos. Si mi rectángulo toca la pared, el método nativo `contains` devolvería false incorrectamente.
 Código:
 ```
-// Verificamos un rectángulo virtual contraído infinitesimalmente (epsilon = 0.01)
+// Contracción infinitesimal (0.01) para evitar falsos negativos en bordes
 double epsilon = 0.01;
-if (boundary.contains(minX + epsilon, minY + epsilon, width - 2*epsilon, height - 2*epsilon)) {
+if (boundary.contains(minX + epsilon, minY + epsilon, 
+                      width - 2*epsilon, height - 2*epsilon)) {
     // Es válido
 }
 ```
-Defensa Técnica:
-* Al contraer el rectángulo un valor epsilon (0.01), alejamos los bordes de la "zona de conflicto" del límite matemático, llevándolos hacia el interior seguro de la figura. Si el rectángulo contraído está dentro, el rectángulo entero también lo está
 
-### Optimización: Filtrado de Casos Degenerados
+> Defensa Técnica (Robustez Matemática): Implementé una técnica de Contracción de Límites. Al encoger el rectángulo virtualmente un margen de seguridad (epsilon = 0.01), alejo los bordes de la "zona de conflicto". Si el "núcleo" del rectángulo contraído está dentro, garantizamos matemáticamente que la figura entera es válida, solucionando la limitación de la API gráfica.
 
-Antes de invocar la costosa lógica de geometría computacional, aplico una cláusula de guarda.
-
-Código:
-```
-if (width <= 0 || height <= 0) continue;
-```
-
-> Defensa: Descarto inmediatamente figuras con dimensiones nulas o negativas.
