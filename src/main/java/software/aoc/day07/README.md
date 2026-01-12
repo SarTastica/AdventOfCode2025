@@ -46,38 +46,47 @@ Utilicé un Set para guardar las columnas activas en la fila actual.
 ### Abstracción (Límites)
 Creé el método `isValid(col)` para encapsular la comprobación de bordes (evitar salir de la matriz por la izquierda o derecha).
 
+***
 
----
+## 4. Evolución a la Parte B: Simulación de Universos (Dynamic Programming)
 
-## 4. Evolución a la Parte B: Simulación Cuántica (Dynamic Programming)
+Debemos contar **todas las posibles líneas de tiempo** que se generan.
 
-### Cambio de Estructura: De Existencia a Cantidad
-En la Parte A usábamos un `Set` (lógica booleana: ¿hay haz?). En la Parte B, el requisito cambia a contar "líneas de tiempo". Esto requiere cambiar la estructura de datos a un **Mapa de Frecuencias**.
+**Solución:** En lugar de rastrear rutas individuales, rastreo **estados comprimidos**.
 
-**Código:**
-```
-Map<Integer, Long> activeTimelines = new HashMap<>();
-// Key (Integer): Columna (Posición)
-// Value (Long): Número de universos paralelos en ese punto
-```
+### 2. Estructura de Datos: El Mapa de Frecuencias
+Para lograr esto, cambié la estructura a un `Map<Integer, Long>`.
 
-### Algoritmo:
-En lugar de simular partículas individuales, implementé un algoritmo de **Programación Dinámica iterativa**. Procesamos la cuadrícula fila por fila. En cada iteración, `activeTimelines` representa el estado comprimido de todo el sistema en esa altura específica.
+* **Key (`Integer` - Columna):** Indica "En qué posición estoy".
+* **Value (`Long` - Cantidad):** Indica "Cuántas versiones paralelas de la realidad han llegado a este punto".
 
-### Map.merge()
-La parte más crítica es gestionar la convergencia: ¿Qué pasa cuando dos divisores envían partículas a la misma celda?En lugar de escribir lógica verbosa (`if containsKey... get... put...`), utilicé el método merge.
+> **Defensa (Compresión de Estado):** Esto convierte un problema de complejidad exponencial en uno lineal respecto a la altura de la cuadrícula, ya que procesamos fila por fila
+
+### 2. El Algoritmo: Procesamiento por Capas (Double Buffering)
+El código utiliza un patrón de **Double Buffering** (búfer doble):
+
+1.  Tengo `activeTimelines` (estado actual).
+2.  Creo `nextTimelines` (estado siguiente vacío).
+3.  Itero sobre los universos actuales y calculo sus destinos.
+4.  Al final de la fila, reemplazo el estado actual con el siguiente (`activeTimelines = nextTimelines`).
+
+> **Defensa (Integridad de Datos):** El uso de dos mapas es vital para evitar "efectos colaterales". No puedo modificar el mapa que estoy leyendo; necesito escribir en uno nuevo para garantizar que los movimientos de una partícula no afecten a sus vecinos en el mismo paso de tiempo lógico.
+
+### 3. `Map.merge()` y Convergencia
+La parte más crítica ocurre cuando dos líneas de tiempo convergen en la misma casilla. Aquí brilla el método `addTimelines`:
 
 ```
 private void addTimelines(Map<Integer, Long> map, int col, long count) {
-    // Si la clave 'col' no existe, inserta 'count'.
-    // Si ya existe, ejecuta la función de remapping: (oldVal, newVal) -> oldVal + newVal
-    map.merge(col, count, Long::sum); 
+    // Si la clave no existe, pon 'count'.
+    // Si existe, suma el nuevo valor al antiguo (old + new).
+    map.merge(col, count, Long::sum);
 }
 ```
-* `Map.merge`: Atomiza la operación de "buscar, sumar y actualizar", haciendo el código más limpio y eficiente.
-* `Long::sum`: Utilizo una Method Reference como función de acumulación. Esto es programación funcional pura aplicada a una estructura de datos clásica.
 
-### Prevención de Desbordamiento (Overflow)
-Dado el crecimiento exponencial de las rutas, el contador supera rápidamente el límite de un int (2 mil millones). Decisión de Diseño: El uso estricto de Long (y primitivos long) en todo el mapa garantiza que la simulación no falle por desbordamiento aritmético silencioso.
+Explicación Técnica:
 
+* El Problema: Clásicamente, tendríamos que hacer: "¿Existe la clave? Si no, pon 0. Luego obtén el valor. Súmale el nuevo. Guárdalo". Son 3 o 4 operaciones propensas a errores.
+* La Solución (Map.merge): Realiza todo eso de forma atómica.
+* Programación Funcional: Uso Long::sum (Method Reference) como función de remapping.
 
+> Defensa (Robustez): El uso de long (64 bits) es obligatorio para evitar un desbordamiento aritmético (Integer Overflow) que daría resultados negativos o incorrectos silenciosamente, garantizando la estabilidad de la simulación.
