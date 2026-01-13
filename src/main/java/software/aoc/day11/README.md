@@ -97,7 +97,7 @@ Para resolver cada permutación, utilicé la estrategia de Divide y Vencerás, f
 * Principio Multiplicativo (Combinatoria): `return leg1 * leg2 * leg3;`
 > Si hay N formas de hacer el tramo 1 y M formas de hacer el tramo 2, el total es NxM. Esto es computacionalmente mucho más eficiente que simular la ruta completa de una sola vez.
 
-*Optimización (Fail Fast): `if (leg1 == 0) return 0;`
+* Optimización: `if (leg1 == 0) return 0;`
 > Aplico una Cláusula de Guarda. Si el primer tramo es imposible (0 caminos), corto la ejecución inmediatamente.
 
 ### 3. Adaptación del Motor dfs y Gestión de Memoria
@@ -112,7 +112,6 @@ private long countPaths(String start, String end) {
 }
 ```
 
-> La memoización guarda 'caminos hacia un destino'. Como en cada tramo el destino cambia (primero es dac, luego fft, luego out), es obligatorio limpiar la caché `memo.clear()` entre llamadas. Si no lo hiciera, el tramo 2 reutilizaría cálculos 'sucios' del tramo 1 apuntando al destino equivocado.
+> Ees obligatorio limpiar la caché `memo.clear()` entre llamadas. Si no lo hiciera, el tramo 2 reutilizaría cálculos 'sucios' del tramo 1 apuntando al destino equivocado.
 
-> Generalización del Algoritmo: Cambié la firma a `dfs(String current, String target)`. Ahora el algoritmo es agnóstico; no busca siempre 'out', sino que busca dinámicamente el nodo objetivo que le pida el orquestador."
 
