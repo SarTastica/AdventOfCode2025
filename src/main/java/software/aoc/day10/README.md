@@ -68,57 +68,51 @@ Implementa el algoritmo BFS (Búsqueda en Anchura) para encontrar el camino más
 
 ## 4. Parte B: Recursión y Descomposición Binaria
 
-### 1. El Constructor: Parsing y Pre-cálculoFase 
+### 1. El Constructor: Parsing y Pre-cálculo
 
-**Parsing:** Primero, transformo la entrada de texto crudo. Extraigo los números objetivo (targets) y convierto la definición de los botones en listas de enteros, donde cada lista indica qué registros incrementa ese botón.
+**Fase de Parsing:**
+Extraigo los números objetivo (`targets`) y convierto la definición de los botones en listas de enteros. Cada lista indica qué registros incrementa ese botón específico.
 
-**Pre-cálculo de Combinaciones (La Estrategia):** Dado que el número de botones es manejable, aplico fuerza bruta local para optimizar la búsqueda posterior.
+**Estrategia: Pre-cálculo de Combinaciones**
+Calculo todas las combinaciones posibles de pulsaciones simultáneas.
 
-* Bucle de Máscaras: Utilizo un desplazamiento de bits `(1 << N)` para iterar sobre todas las combinaciones posibles de pulsar botones simultáneamente en un solo turno.
+**Bucle de Máscaras (Bitmasking):**
+Utilizo un desplazamiento de bits (`1 << N`) para iterar sobre el conjunto potencia de los botones.
+
 ```
 int limit = 1 << buttons.size(); // 2 elevado a N (Total de combinaciones)
 int numRegisters = targets.size();
-
 for (int mask = 0; mask < limit; mask++) { ... }
 ```
 
-* Cálculo de Efecto: Para cada combinación, sumo los efectos de los botones activos y calculo su coste (cantidad de pulsaciones).
-```
-List<Long> effect = new ArrayList<>(Collections.nCopies(numRegisters, 0L));
-int cost = 0;
+**Cálculo de Efecto y Coste**: Para cada máscara (combinación), sumo los efectos de los botones activos y calculo su coste acumulado.
 
-for (int i = 0; i < buttons.size(); i++) {
-    // Si el bit 'i' está encendido en la máscara...
-    if ((mask & (1 << i)) != 0) { 
-        cost++; // Me cuesta 1 pulsación más
-        
-        // Sumo +1 a los registros que afecta este botón
-        for (int regIndex : buttons.get(i)) {
-            if (regIndex < numRegisters) {
-                effect.set(regIndex, effect.get(regIndex) + 1);
-            }
-        }
-    }
+```
+// Si el bit 'i' está encendido en la máscara...
+if ((mask & (1 << i)) != 0) { 
+    cost++; // Incremento el coste
+    // Aplico el efecto a los registros correspondientes
+    // ...
 }
 ```
+**Tabla de Optimización (patterns)**: El resultado se almacena en un HashMap.
 
-* Tabla de Optimización (patterns): Guardo en un HashMap el resultado: Clave (Efecto en los registros) -> Valor (Coste mínimo).
-```
-if (!patterns.containsKey(effect) || cost < patterns.get(effect)) {
-    patterns.put(effect, cost);
-}
-```
+* Clave: El cambio neto en los registros (Efecto).
+* Valor: El coste mínimo de pulsaciones para lograr ese efecto.
 
-> Defensa:Esto transforma un problema de búsqueda complejo en una búsqueda en tabla hash. Durante la fase recursiva, en lugar de probar combinaciones de botones, simplemente consulto este mapa en tiempo constante O(1)."
+> Defensa Técnica: Durante la fase recursiva, en lugar de probar combinaciones de botones y recalcular sus efectos, simplemente consulto este mapa pre-calculado.
 
 ### 2. Método solve: Ingeniería Inversa (Recursividad)
 
-El problema original multiplica el estado por 2 en cada paso. Simular eso hacia adelante genera un árbol infinito. Por eso, aplico Ingeniería Inversa: empiezo en el Target e intento llegar a 0 dividiendo por 2.
+El enunciado implica que en cada paso el estado se multiplica por 2. Simular esto hacia adelante genera un árbol de búsqueda que crece exponencialmente hacia el infinito.
 
-**El Algoritmo (Paso a Paso):**
+**La Solución: Ingeniería Inversa**
 
-* Caso Base y Memoización: Si llego a 0, el coste es 0. Uso un mapa memo para almacenar estados ya resueltos y evitar re-calcular ramas idénticas.
-* Lógica de Paridad: Itero sobre los patrones pre-calculados. Para que un movimiento sea válido en reversa, la diferencia `(EstadoActual - Patrón)` debe ser PAR `(diff % 2 == 0)`.
-* "Transición de Estado: "Si es válido, el siguiente estado recursivo es `diff / 2`. Estamos deshaciendo la multiplicación.
-* Cálculo de Coste Ponderado: Fórmula: `minCost = PatrónCost + (2 * RestoCost)`. Sumo el coste de los botones de este turno y multiplico por 2 el coste restante porque, al estar deshaciendo una división, las acciones futuras (que en realidad ocurrieron en el pasado) tienen un peso exponencialmente mayor en la estructura binaria."
+Empiezo en el Target e intento llegar a 0 invirtiendo la operación matemática: dividiendo por 2.
+
+**El Algoritmo Paso a Paso:**
+* Caso Base y Memoización: Si llego a 0, el coste es 0. Utilizo un mapa memo para almacenar estados ya resueltos y evitar re-calcular ramas idénticas.
+* Lógica de Paridad (Poda): Itero sobre los patterns pre-calculados. Para que un movimiento sea válido en reversa, la diferencia debe respetar la paridad binaria: `if ((EstadoActual - Patrón) % 2 == 0)`
+* Transición de Estado: Si es válido, el siguiente estado recursivo es `diff / 2`. Estamos deshaciendo la multiplicación implícita del problema, desplazándonos al siguiente bit de significancia.
+* Cálculo de Coste Ponderado: `minCost = PatrónCost + (2 * RestoCost);`
 
