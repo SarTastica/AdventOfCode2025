@@ -51,8 +51,12 @@ Este método osquesta todo:
         allConnections.add(new Connection(i, j, dist));
     }
 }` 
+
+
 * Se ordena la lista de la distancia de la más corta a la más larga
 * `Collections.sort(allConnections);`
+
+
 * Toma solo las primeras 1000 conexiones (más cortas) y las une con el método find-union
 * `int limit = Math.min(1000, allConnections.size());
 for (int i = 0; i < limit; i++) {
