@@ -33,29 +33,43 @@ La clase `ReactorManager` encapsula toda la lógica, manteniendo **Alta Cohesió
 
 ### 1. Estructuras de Datos y Modelado
 
-Para modelar el problema, elegí representar el sistema de reactores como un Grafo Dirigido.
-* `adjList` (Lista de Adyacencia): Utilicé un `HashMap<String, List<String>>` porque necesito recuperar los vecinos de cualquier nodo en tiempo constante O(1). Una matriz de adyacencia habría sido ineficiente en memoria para un grafo disperso como este.
-* `memo` (Caché): Un segundo mapa para almacenar resultados parciales. Esto es la base de la Programación Dinámica que explicaré en el método dfs.
+Para representar la red de dispositivos, elegí un enfoque clásico de Teoría de Grafos.
+
+El Código:
+```
+private final Map<String, List<String>> adjList = new HashMap<>();
+private final Map<String, Long> memo = new HashMap<>();
+```
+* Grafo Dirigido (adjList): Implementé una Lista de Adyacencia usando un HashMap. El mapa me permite acceso O(1) para obtener los vecinos de cualquier nodo dado su nombre (String).
+* Caché (memo): Almacena NombreNodo -> NúmeroDeCaminos, permitiendo que el algoritmo recuerde lo que ya calculó (Programación Dinámica).
 
 ### 2. Método countPaths: Ingesta y Limpieza
 
-Robustez en el Parseo:`String[] destinations = parts[1].trim().split("\\s+");`
-* Uso la expresión regular `\\s+` en lugar de un espacio simple. Esto hace el código resistente a entradas 'sucias'
+Este método actúa como el Constructor del Grafo y orquestador. Su responsabilidad es transformar texto crudo en una estructura navegable.
+```
+String[] parts = line.split(":");
+// ...
+String[] destinations = parts[1].trim().split("\\s+");
+adjList.put(source, Arrays.asList(destinations));
+```
 
-Gestión de Estado: `memo.clear();`
-* Crucial para la corrección. Limpio la caché antes de cada ejecución para evitar efectos colaterales si el objeto `ReactorManager` se reutiliza, garantizando que cada cálculo sea independiente.
+* Primero divido por : para separar el nodo origen de sus conexiones.
+* Sanitización (\\s+): Al procesar los destinos, uso la expresión regular `\\s+` en lugar de un espacio simple " ". Esto hace el código robusto ante entradas "sucias". 
 
-### 3. Método dfs: El Algoritmo Núcleo
+Manejo de Nodos Hoja (Edge Cases)
+```
+} else {
+    adjList.put(source, new ArrayList<>());
+}
+```
+* Prevención de NullPointer: Si un dispositivo aparece a la izquierda pero no tiene conexiones a la derecha (es un callejón sin salida), lo añado al mapa con una lista vacía. Esto simplifica enormemente el DFS posterior: no tengo que comprobar si adjList.get(nodo) es null, solo itero sobre una lista vacía y el bucle termina naturalmente.
 
-Aquí implementé una Búsqueda en Profundidad (DFS) optimizada. La lógica es recursiva: 'El número de caminos desde aquí es la suma de los caminos de mis vecinos'.
-
-Caso Base (Condición de Parada): `if ("out".equals(current)) return 1;`
-* Si llegamos a la salida, hemos encontrado 1 camino válido. Este valor se propagará hacia atrás en la recursión.
-* Optimización (Memoización): `if (memo.containsKey(current)) return memo.get(current);`
-* Este es el principio más importante del ejercicio. Sin esto, la complejidad sería exponencial (O(2^N)). Con esta línea, transformamos el algoritmo a lineal (O(V+E)). Si ya calculé un nodo, devuelvo el resultado instantáneamente, podando ramas enteras del árbol de búsqueda.
-* Acumulación Recursiva: `totalPaths += dfs(neighbor);`
-Itero sobre los vecinos y acumulo sus resultados. Si un nodo no tiene vecinos (callejón sin salida), el bucle no corre y retorna 0, manejando correctamente los caminos inválidos."
-
+Gestión de Estado (Idempotencia)
+```
+memo.clear();
+return dfs("you");
+```
+* La llamada a `memo.clear()` es crítica. Dado que memo es un campo de instancia, debo limpiarlo antes de cada ejecución. Esto garantiza que el objeto ReactorManager sea reutilizable y que cálculos de tests anteriores no corrompan el resultado actual.
 ***
 
 ## 4. Parte B: Descomposición Combinatoria
