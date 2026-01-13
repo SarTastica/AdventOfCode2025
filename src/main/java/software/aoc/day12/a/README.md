@@ -39,72 +39,94 @@ He diseñado una solución orientada a objetos que separa la geometría de la l�
     * Representa una coordenada `(r, c)`.
     * Encapsula la lógica de transformación (`rotate`, `flip`) y comparación.
 
-
-
-**Estrategia Algorítmica:**
-Se trata de un problema clásico de **Exact Cover / 2D Bin Packing**. Dado que el espacio de búsqueda es pequeño pero complejo, la mejor herramienta es la **Fuerza Bruta con Backtracking** optimizada con podas (pruning).
-
 ***
 
 ## 3. Implementación: Parsing y Geometría
 
-### Parsing Robusto con Iterator
-En lugar de gestionar índices manuales propensos a errores (`i++`), utilizo un `Iterator<String>`.
+### 1. Modelado: La Clase Point y Shape
+"Para no complicarme con arrays multidimensionales complejos, decidí modelar la geometría desde cero.
 
-**Código:**
+Primero, creé la clase Point. La clave aquí es que la hice inmutable y le añadí capacidades de transformación vectorial. En lugar de calcular senos y cosenos, uso operaciones simples de intercambio de coordenadas para rotar 90 grados."
 ```
-Iterator<String> it = lines.iterator();
-while (it.hasNext()) {
-    // Detectamos cambio de sección: de formas a puzzles
-    if (line.contains("x") && line.contains(":")) return solvePuzzles(line, it);
-    parseShape(line, it);
+public Point rotate() { return new Point(c, -r); }
+public Point flip()   { return new Point(r, -c); }
+```
+
+Luego construí la clase Shape (Forma). Como rotar las piezas durante la búsqueda recursiva es muy costoso computacionalmente, decidí calcular las 8 variaciones posibles (4 rotaciones y sus espejos) una sola vez al inicio."
+```
+private List<Set<Point>> generateVariations(Set<Point> base) {
+    // Genero y guardo las 8 permutaciones posibles normalizadas al origen (0,0)
+    // Esto hace que el backtracking sea O(1) al pedir una variante.
 }
 ```
->Defensa: El uso de un iterador convierte el parseo en una máquina de estados secuencial. Leemos formas hasta que detectamos el patrón NxM:, momento en el que cambiamos el modo de operación sin necesidad de reiniciar bucles.
-
-Geometría y Normalización (Shape)
-Para que el algoritmo sea rápido, necesitamos "normalizar" las formas (moverlas a la coordenada 0,0) y generar sus mutaciones.
-
-Código:
-```
-// Generamos 4 rotaciones x 2 estados (normal y espejo)
-current = current.stream().map(Point::rotate).collect(Collectors.toSet());
-uniqueVars.add(normalize(current));
-```
-> Defensa: Utilizo Java Streams para aplicar transformaciones geométricas de forma declarativa. Al almacenar las variaciones en un HashSet, elimino duplicados automáticamente (ej: rotar un cuadrado 90 grados produce la misma figura, no necesitamos comprobarla dos veces).
-
 
 ***
 
-## 4. Algoritmo de Resolución: Backtracking Optimizado
+## 2. Orquestador: `‎ChristmasTreeFarm‎`
 
-El núcleo de la solución es el método `canFit`. Intenta colocar las piezas una a una recursivamente.
+Su responsabilidad es leer el archivo, entender qué formas existen y resolver los puzzles de empaquetado utilizando fuerza bruta inteligente.
 
-### Optimizaciones Críticas (Fail Fast)
+A continuación, el desglose por responsabilidades:
 
-Antes de empezar la recursión costosa, aplico dos optimizaciones fundamentales:
+***
 
-1.  **Chequeo de Área:**
-    `if (totalArea > W * H) return false;`
-    Si la suma del área de los regalos es mayor que la rejilla, es físicamente imposible. Abortamos inmediatamente.
+### 1. El Cerebro: `solve` y el Registro de Formas
 
-2.  **Ordenamiento Heurístico (La clave del rendimiento):**
-    ```
-    pieces.sort((a, b) -> Integer.compare(shapeRegistry.get(b).getArea(), shapeRegistry.get(a).getArea()));
-    ```
-    > **Defensa:** Ordeno los regalos de **mayor a menor**.
-    > * *Analogía:* Es más difícil colocar rocas grandes en un frasco que verter arena.
-    > * *Efecto:* Si las piezas grandes no caben, el algoritmo falla en los primeros niveles de recursión, podando ramas enormes del árbol de búsqueda. Si ordenáramos al revés, perderíamos tiempo colocando piezas pequeñas para descubrir al final que la grande no cabe.
+El método `solve` actúa como un **Dispatcher (Despachador)**.
 
-### Lógica Recursiva (`tryToggle`)
+* **Gestión de Memoria (`shapeRegistry`):** Mantiene un `Map` que actúa como la memoria del programa, guardando las definiciones de las piezas (`ID -> Objeto Shape`).
+* **Lectura y Despacho:** Lee el archivo línea por línea:
+    * Si encuentra una definición de pieza (bloque de `#`) llama a `parseShape`.
+    * Si encuentra una definición de puzzle (ej: `5x6: 1 1 2`) llama a `solvePuzzles`.
+
+***
+
+### 2. La Preparación: `solveSinglePuzzle`
+
+Este método prepara el terreno antes de comenzar la fase costosa de probar combinaciones.
+
+1.  **Decodificación:** Convierte la entrada compacta (ej: "2 piezas del tipo 0") en una lista explícita de piezas a colocar (ej: `[0, 0]`).
+2.  **Optimización Heurística (CLAVE):**
 
 ```
-// 1. Intentar poner la pieza en (r, c)
-if (tryToggle(grid, r, c, variant, true)) {
-    // 2. Recurser: Intentar poner la siguiente
-    if (canFit(grid, pieces, idx + 1)) return true;
-    // 3. Backtrack: Si falla, quitamos la pieza y probamos otra posición
-    tryToggle(grid, r, c, variant, false);
-}
+pieces.sort((a, b) -> Integer.compare(shapeRegistry.get(b).getArea(), shapeRegistry.get(a).getArea()));
 ```
-> Defensa Técnica: He unificado la lógica de colocar (true) y quitar (false) en un solo método tryToggle. Esto reduce la duplicación de código y minimiza bugs. El algoritmo prueba exhaustivamente cada variación en cada celda válida hasta encontrar una solución o descartar todas las posibilidades.
+
+Estrategia Voraz (Greedy): Ordenamos las piezas de mayor a menor tamaño. Es mucho más difícil encajar una pieza gigante al final cuando el tablero está casi lleno.
+
+Si intentamos poner las grandes primero y no caben, el algoritmo se da cuenta rápido y corta esa rama (Fail-fast), ahorrando millones de cálculos innecesarios.
+
+### 3. El Motor Algorítmico: canFit (Backtracking)
+Este es el método más importante de la clase. Implementa Recursividad con Vuelta Atrás (Backtracking). Funciona probando caminos en un árbol de decisiones:
+
+Caso Base:
+```
+if (idx == pieces.size()) return true;
+Si he logrado colocar todas las piezas, he ganado (retorno true).
+```
+**Exploración:**
+
+* Toma la pieza actual.
+* Prueba todas sus variaciones (rotaciones/volteos).
+* Prueba todas las casillas del tablero (r, c).
+
+**Acción y Backtracking:**
+
+* Intenta colocar la pieza: tryToggle(..., true).
+* Si entra, se llama a sí mismo para la siguiente pieza: canFit(..., idx + 1).
+* Deshacer: Si la llamada recursiva devuelve false (el camino no llevó a una solución), quita la pieza (tryToggle(..., false)) y prueba en la siguiente casilla.
+
+### 4. El Validador: tryToggle
+
+Este método auxiliar cumple una doble función para mantener el código limpio y respetar el principio DRY (Don't Repeat Yourself):
+
+Validación (Forward Checking): Antes de modificar el tablero, verifica:
+
+* Si la pieza se sale de los límites (nr < 0, etc.).
+* Si choca con otra pieza ya colocada (grid[nr][nc]).
+
+**Escritura:**
+
+* Si placing es true: Marca las casillas como ocupadas.
+* Si placing es false: Las libera (borra la pieza para el backtracking).
+
