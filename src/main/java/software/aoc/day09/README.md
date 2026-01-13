@@ -51,6 +51,7 @@ final int y;
 long width = Math.abs(t1.x - t2.x) + 1;
 long height = Math.abs(t1.y - t2.y) + 1;
 ```
+>  Si tengo una baldosa en $x=2$ y otra en $x=4$, la resta matemática es $2$. Pero físicamente hay 3 baldosas involucradas: la 2, la 3 y la 4. Por eso sumo 1.
 
 ***
 
