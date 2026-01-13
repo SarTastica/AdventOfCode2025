@@ -46,6 +46,7 @@ Migré todo el sistema a **`long`** y **`LongStream`**.
 
 ### Algoritmo Voraz con Límites (Greedy with Bounds)
 Implementé un algoritmo constructivo iterativo:
+* Primero tenemos el caso base de que si la longitud de la secuencia es menor que el numero de dígitos `if (sequence.length() < TARGET_LENGTH)`
 * Calculo un **Límite de Búsqueda (`searchLimit`)**: `longitud_total - caracteres_pendientes`.
 * Busco el dígito más alto posible *dentro* de ese rango seguro.
 * "Bloqueo" ese dígito y avanzo al siguiente.
@@ -54,11 +55,4 @@ Este enfoque garantiza que siempre reservamos espacio suficiente para completar 
 
 ### Código Expresivo y KISS
 * **Constantes:** Uso `private static final int TARGET_LENGTH = 12;` para evitar "números mágicos".
-* **KISS (Keep It Simple):** Preferí un bucle `while` iterativo sobre una solución recursiva compleja. Es más eficiente en memoria (evita *StackOverflow*) y más fácil de razonar (principio **YAGNI**).
-
----
-
-## 5. Conclusión
-La Parte B requirió rediseñar el algoritmo para manejar restricciones espaciales (reservar caracteres) y de capacidad (`long`).
-
-He mantenido la **Arquitectura Modular**, asegurando que la complejidad creciente se quede encapsulada dentro de `BatteryBank` (Abstracción), sin afectar al orquestador `PowerSystem`.
+* **KISS (Keep It Simple):** Preferí un bucle `while` iterativo sobre una solución recursiva compleja. Es más eficiente en memoria (evita *StackOverflow*)
