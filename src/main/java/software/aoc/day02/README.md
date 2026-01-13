@@ -15,21 +15,18 @@ El objetivo de este ejercicio es procesar una lista de inventario para detectar 
 
 ---
 
-***
 
 ## 2. Arquitectura y Estructura
 
 Para este ejercicio, he distribuido la lógica basándome en la **Cohesión y la Abstracción**. He evitado tener un único método gigante y he aplicado el **Principio de Responsabilidad Única (SRP)** creando métodos auxiliares especializados:
 
-1. **El Orquestador (calculateInvalidIdSum):** Es el método principal. No conoce los detalles de validación ni de parseo; solo define el flujo de datos.
+1. **El Orquestador (calculateInvalidIdSum):** define el flujo de datos.
 2. **El Generador (rangeToStream):** Se encarga exclusivamente de transformar el texto X-Y en un flujo numérico usable.
-3. **El Validador (isRepeatedSequence):** Encapsula la regla de negocio pura (la lógica matemática para saber si un número es un patrón repetido).
+3. **El Validador (isRepeatedSequence):** la lógica matemática para saber si un número es un patrón repetido)
 
 > **Beneficio:** Esta arquitectura desacopla la generación de datos de su validación. Si cambia el formato de entrada, solo toco el generador. Si cambia la regla de negocio, solo toco el validador.
 
 ---
-
-***
 
 ## 3. Parte A: Streams y Optimización
 
@@ -44,8 +41,6 @@ He utilizado LongStream y flatMapToLong en lugar de Stream<Long>.
 > **Defensa Técnica:** Esta decisión es vital para el rendimiento. Evita el **Autoboxing/Unboxing** (la conversión costosa entre el primitivo long y el objeto Long). Dado que iteramos sobre rangos que pueden contener millones de números, trabajar con tipos primitivos optimiza drásticamente el uso de memoria y CPU.
 
 ---
-
-***
 
 ## 4. Evolución a la Parte B: Generalización de Patrones
 
@@ -62,10 +57,3 @@ El uso de String.repeat(repeats) es un ejemplo de código limpio y expresivo. En
 
 ---
 
-***
-
-## 5. Conclusión
-
-Lo más destacable de este ejercicio es la demostración de **Bajo Acoplamiento**.
-
-Gracias a la arquitectura definida en el punto 2, la transición de la Parte A a la Parte B fue limpia. El método principal y la lógica de Streams permanecieron **idénticos**. El cambio en la regla de negocio (validación matemática) quedó aislado en el método validador, sin romper ni afectar a la infraestructura de procesamiento de datos.
