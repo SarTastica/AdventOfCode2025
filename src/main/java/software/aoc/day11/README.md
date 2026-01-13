@@ -72,6 +72,12 @@ return dfs("you");
 * La llamada a `memo.clear()` es crítica. Dado que memo es un campo de instancia, debo limpiarlo antes de cada ejecución. Esto garantiza que el objeto ReactorManager sea reutilizable y que cálculos de tests anteriores no corrompan el resultado actual.
 ***
 
+### DFS
+Este método dfs resuelve el problema utilizando Programación Dinámica. 
+* Defino un caso base: llegar a 'out' cuenta como 1 camino.
+* Para cualquier otro nodo, el número de caminos es la suma recursiva de los caminos de sus vecinos.
+* El grafo tiene muchas rutas que convergen. Al almacenar el resultado de cada nodo en el mapa memo la primera vez que lo visito, transformo una complejidad exponencial en una lineal respecto al número de aristas y vértices
+
 ## 4. Parte B: Descomposición Combinatoria
 
 ### 1. Método countPathsViaComponents: Estrategia y Topología
