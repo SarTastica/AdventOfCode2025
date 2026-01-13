@@ -85,8 +85,6 @@ private void addTimelines(Map<Integer, Long> map, int col, long count) {
 
 Explicación Técnica:
 
-* El Problema: Clásicamente, tendríamos que hacer: "¿Existe la clave? Si no, pon 0. Luego obtén el valor. Súmale el nuevo. Guárdalo". Son 3 o 4 operaciones propensas a errores.
-* La Solución (Map.merge): Realiza todo eso de forma atómica.
-* Programación Funcional: Uso Long::sum (Method Reference) como función de remapping.
+* Si la columna `col` no existe en el mapa, ponle el valor count. Si YA existe (porque otra partícula llegó ahí desde otro lado), suma el nuevo `count` al valor antiguo.
 
 > Defensa (Robustez): El uso de long (64 bits) es obligatorio para evitar un desbordamiento aritmético (Integer Overflow) que daría resultados negativos o incorrectos silenciosamente, garantizando la estabilidad de la simulación.
