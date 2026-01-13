@@ -64,6 +64,11 @@ Implementa el algoritmo BFS (Búsqueda en Anchura) para encontrar el camino más
 * Utiliza una cola (ArrayDeque) para explorar los estados nivel por nivel y un mapa (HashMap) para registrar los visitados y evitar ciclos. 
 * La transición de estados (pulsar botón) se realiza mediante la operación XOR (^), que invierte los bits (enciende/apaga luces) de forma instantánea y eficiente.
 
+**Algoritmo**
+* La Cola (queue): Es mi lista de tareas pendientes. Empiezo poniendo el estado inicial (el 0).
+* El Bucle: Saco un número de la lista y miro: '¿A qué otros números puedo llegar desde aquí pulsando un botón?'.
+* El Mapa (visited): Si encuentro un número nuevo, lo apunto y lo meto al final de la cola. Si ya lo había visto antes, lo ignoro para no dar vueltas en círculos.
+
 ***
 
 ## 4. Parte B: Recursión y Descomposición Binaria
@@ -85,7 +90,8 @@ int numRegisters = targets.size();
 for (int mask = 0; mask < limit; mask++) { ... }
 ```
 
-**Cálculo de Efecto y Coste**: Para cada máscara (combinación), sumo los efectos de los botones activos y calculo su coste acumulado.
+**Cálculo de Efecto y Coste**: 
+Para cada máscara (combinación), sumo los efectos de los botones activos y calculo su coste acumulado.
 
 ```
 // Si el bit 'i' está encendido en la máscara...
