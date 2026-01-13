@@ -10,7 +10,7 @@ Una lista de conexiones que define la topología de la red (formato de Lista de 
 Ejemplo: `bbb: ddd eee` (El dispositivo `bbb` envía datos a `ddd` y `eee`).
 
 **Parte A:**
-El problema es encontrar redundancia o conectividad. Calcular el número total de **caminos únicos** que existen desde un punto de inicio (`you`) hasta la salida principal (`out`).
+Calcular el número total de **caminos únicos** que existen desde un punto de inicio (`you`) hasta la salida principal (`out`).
 
 **Parte B:**
 El problema añade restricciones de paso obligatorio. Calcular cuántos caminos desde el servidor (`svr`) hasta la salida (`out`) pasan obligatoriamente por dos componentes específicos: el conversor (`dac`) y la transformada de Fourier (`fft`), sin importar el orden en que se visiten.
@@ -20,12 +20,12 @@ El problema añade restricciones de paso obligatorio. Calcular cuántos caminos 
 ## 2. Arquitectura
 
 He modelado el problema utilizando **Teoría de Grafos**.
-La clase `ReactorManager` encapsula toda la lógica, manteniendo **Alta Cohesión** entre el parseo de los datos y los algoritmos de recorrido.
+La clase `ReactorManager` engloba toda la lógica, manteniendo **Alta Cohesión** entre el parseo de los datos y los algoritmos de recorrido.
 
 **Decisiones de Diseño:**
 1.  **Grafo Dirigido (Directed Graph):** Los datos fluyen en un solo sentido.
-2.  **Lista de Adyacencia:** Utilicé un `Map<String, List<String>>` para representar el grafo ya el mapa es eficiente en espacio y permite acceso constante (O(1)) a los vecinos.
-3.  **Gestión de Estado:** La clase limpia sus estructuras internas (`memo.clear()`) antes de cada cálculo, permitiendo la reutilización segura de la instancia.
+2.  **Lista de Adyacencia:**
+3.  **Gestión de Estado:** 
 
 ***
 
@@ -40,8 +40,8 @@ El Código:
 private final Map<String, List<String>> adjList = new HashMap<>();
 private final Map<String, Long> memo = new HashMap<>();
 ```
-* Grafo Dirigido (adjList): Implementé una Lista de Adyacencia usando un HashMap. El mapa me permite acceso O(1) para obtener los vecinos de cualquier nodo dado su nombre (String).
-* Caché (memo): Almacena NombreNodo -> NúmeroDeCaminos, permitiendo que el algoritmo recuerde lo que ya calculó (Programación Dinámica).
+* Grafo Dirigido (adjList): El mapa me permite acceso O(1) para obtener los vecinos de cualquier nodo dado su nombre (String).
+* Caché (memo): Almacena NombreNodo -> NúmeroDeCaminos, permitiendo que el algoritmo recuerde lo que ya calculó
 
 ### 2. Método countPaths: Ingesta y Limpieza
 
@@ -62,7 +62,7 @@ Manejo de Nodos Hoja (Edge Cases)
     adjList.put(source, new ArrayList<>());
 }
 ```
-* Prevención de NullPointer: Si un dispositivo aparece a la izquierda pero no tiene conexiones a la derecha (es un callejón sin salida), lo añado al mapa con una lista vacía. Esto simplifica enormemente el DFS posterior: no tengo que comprobar si adjList.get(nodo) es null, solo itero sobre una lista vacía y el bucle termina naturalmente.
+* Si un dispositivo aparece a la izquierda pero no tiene conexiones a la derecha (es un callejón sin salida), lo añado al mapa con una lista vacía. Esto simplifica enormemente el DFS posterior: no tengo que comprobar si adjList.get(nodo) es null, solo itero sobre una lista vacía y el bucle termina naturalmente.
 
 Gestión de Estado (Idempotencia)
 ```
@@ -70,13 +70,15 @@ memo.clear();
 return dfs("you");
 ```
 * La llamada a `memo.clear()` es crítica. Dado que memo es un campo de instancia, debo limpiarlo antes de cada ejecución. Esto garantiza que el objeto ReactorManager sea reutilizable y que cálculos de tests anteriores no corrompan el resultado actual.
-***
+
 
 ### DFS
 Este método dfs resuelve el problema utilizando Programación Dinámica. 
 * Defino un caso base: llegar a 'out' cuenta como 1 camino.
 * Para cualquier otro nodo, el número de caminos es la suma recursiva de los caminos de sus vecinos.
 * El grafo tiene muchas rutas que convergen. Al almacenar el resultado de cada nodo en el mapa memo la primera vez que lo visito, transformo una complejidad exponencial en una lineal respecto al número de aristas y vértices
+
+***
 
 ## 4. Parte B: Descomposición Combinatoria
 
@@ -94,7 +96,7 @@ long path2 = calculateSequentialPath("svr", "fft", "dac", "out");
 ### 2. Método calculateSequentialPath: Divide y Vencerás 
 
 Para resolver cada permutación, utilicé la estrategia de Divide y Vencerás, fragmentando el problema en 3 tramos independientes (Legs).
-* Principio Multiplicativo (Combinatoria): `return leg1 * leg2 * leg3;`
+* `return leg1 * leg2 * leg3;`
 > Si hay N formas de hacer el tramo 1 y M formas de hacer el tramo 2, el total es NxM. Esto es computacionalmente mucho más eficiente que simular la ruta completa de una sola vez.
 
 * Optimización: `if (leg1 == 0) return 0;`
