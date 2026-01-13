@@ -44,6 +44,7 @@ El método Find busca el lider i y el método Union une dos grupos.
 ### Método calculateCircuitScore
 
 Este método osquesta todo:
+* Utilizo un Stream para mapear cada línea de texto a una nueva instancia de la clase Point3D y recolecto todos esos objetos en una lista. También guardo n, que es la cantidad total de puntos
 * Genera todas las conexiones
 * `for (int i = 0; i < n; i++) {
     for (int j = i + 1; j < n; j++) {
