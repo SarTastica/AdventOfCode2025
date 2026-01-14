@@ -79,6 +79,19 @@ El método `solve` actúa como un **Dispatcher (Despachador)**.
     * Si encuentra una definición de pieza (bloque de `#`) llama a `parseShape`.
     * Si encuentra una definición de puzzle (ej: `5x6: 1 1 2`) llama a `solvePuzzles`.
 
+Explicando **parseShape**
+Este método transforma "Arte ASCII" en "Entidades Lógicas".
+* Extracción de ID: Primero limpia la cabecera para obtener el identificador numérico.
+* Luego, entra en un bucle que consume líneas hasta encontrar una vacía. Aquí transformo la representación visual (los caracteres #) en un sistema de coordenadas lógicas (Point), donde la fila r y columna c se guardan en un Set.
+* Finalmente, instancio el objeto Shape (que internamente pre-calculará sus rotaciones) y lo guardo en el `shapeRegistry` para usarlo más tarde.
+
+**Explicando solvePuzzles**
+El método solvePuzzles actúa como un orquestador de lotes. El archivo cambia de contexto: ya no define piezas, ahora define problemas.
+
+* Toma la primera línea (que ya fue leída para detectar el cambio de sección) y luego itera sobre el resto.
+* Para cada línea de definición (ej: 5x6...), delega la complejidad algorítmica al método solveSinglePuzzle.
+* Simplemente cuenta cuántos de estos problemas devuelven true (tienen solución) y retorna el total.
+* 
 ***
 
 ### 2. La Preparación: `solveSinglePuzzle`
