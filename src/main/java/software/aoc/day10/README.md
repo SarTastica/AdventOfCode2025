@@ -75,38 +75,32 @@ Implementa el algoritmo BFS (Búsqueda en Anchura) para encontrar el camino más
 
 ### 1. El Constructor: Parsing y Pre-cálculo
 
-**Fase de Parsing:**
-Extraigo los números objetivo (`targets`) y convierto la definición de los botones en listas de enteros. Cada lista indica qué registros incrementa ese botón específico.
+Vamos a ver cómo inicializamos cada máquina. Este constructor hace dos cosas clave: 
+* primero interpreta los datos de entrada
+* segundo, realiza un pre-cálculo masivo para optimizar el rendimiento después.
 
-**Estrategia: Pre-cálculo de Combinaciones**
-Calculo todas las combinaciones posibles de pulsaciones simultáneas.
+### Parsing y Limpieza
 
-**Bucle de Máscaras (Bitmasking):**
-Utilizo un desplazamiento de bits (`1 << N`) para iterar sobre el conjunto potencia de los botones.
+Aquí tomamos la cadena de texto cruda `line` y extraemos dos cosas:
+* Los targets: que son los valores a los que queremos llegar
+* Los buttons: que convertimos en listas de enteros.
 
-```
-int limit = 1 << buttons.size(); // 2 elevado a N (Total de combinaciones)
-int numRegisters = targets.size();
-for (int mask = 0; mask < limit; mask++) { ... }
-```
+Cada lista nos dice qué registros incrementa ese botón en concreto.
 
-**Cálculo de Efecto y Coste**: 
-Para cada máscara (combinación), sumo los efectos de los botones activos y calculo su coste acumulado.
+### La Estrategia de Bitmasking
 
-```
-// Si el bit 'i' está encendido en la máscara...
-if ((mask & (1 << i)) != 0) { 
-    cost++; // Incremento el coste
-    // Aplico el efecto a los registros correspondientes
-    // ...
-}
-```
-**Tabla de Optimización (patterns)**: El resultado se almacena en un HashMap.
+Fíjense en esta línea: `int limit = 1 << buttons.size();` Lo que estoy preparando es un bucle que va a generar todas las combinaciones posibles de botones pulsados simultáneamente. 
+> Si tengo 3 botones, probaré las 8 combinaciones posibles de golpe.
 
-* Clave: El cambio neto en los registros (Efecto).
-* Valor: El coste mínimo de pulsaciones para lograr ese efecto.
+### El Bucle de Simulación)
 
-> Defensa Técnica: Durante la fase recursiva, en lugar de probar combinaciones de botones y recalcular sus efectos, simplemente consulto este mapa pre-calculado.
+Entramos en el bucle `for (int mask...)`. Aquí recorremos cada combinación. 
+
+* Dentro, uso esta condición: `if ((mask & (1 << i)) != 0)` Esto traduce la máscara binaria a la realidad: '¿Está el botón i activado en esta combinación?'. Si lo está, aumento el coste (cost++) y sumamos su impacto a la lista de efectos (effect). 
+
+### La Tabla de Optimización
+
+Finalmente, guardamos el resultado en nuestro mapa `patterns`. Pero solo guardamos un efecto si es nuevo o si hemos encontrado una forma más barata (menos botones) de conseguir el mismo resultado.
 
 ### 2. Método solve: Ingeniería Inversa (Recursividad)
 
