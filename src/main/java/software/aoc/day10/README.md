@@ -104,15 +104,19 @@ Finalmente, guardamos el resultado en nuestro mapa `patterns`. Pero solo guardam
 
 ### 2. Método solve: Ingeniería Inversa (Recursividad)
 
-El enunciado implica que en cada paso el estado se multiplica por 2. Simular esto hacia adelante genera un árbol de búsqueda que crece exponencialmente hacia el infinito.
+Como ir hacia adelante generaría un árbol infinito porque los números se multiplican por 2. Aquí aplicamos Ingeniería Inversa: empezamos en el Target y nuestro objetivo es reducirlo hasta llegar a cero, dividiendo entre 2 en cada paso."
 
-**La Solución: Ingeniería Inversa**
+**Paso 1: Caso Base y Caché**: Las primeras líneas son pura gestión:
 
-Empiezo en el Target e intento llegar a 0 invirtiendo la operación matemática: dividiendo por 2.
+Caso Base: `if (current... allMatch... 0)`: Si todo es cero, el coste es 0.
 
-**El Algoritmo Paso a Paso:**
-* Caso Base y Memoización: Si llego a 0, el coste es 0. Utilizo un mapa memo para almacenar estados ya resueltos y evitar re-calcular ramas idénticas.
-* Lógica de Paridad (Poda): Itero sobre los patterns pre-calculados. Para que un movimiento sea válido en reversa, la diferencia debe respetar la paridad binaria: `if ((EstadoActual - Patrón) % 2 == 0)`
-* Transición de Estado: Si es válido, el siguiente estado recursivo es `diff / 2`. Estamos deshaciendo la multiplicación implícita del problema, desplazándonos al siguiente bit de significancia.
-* Cálculo de Coste Ponderado: `minCost = PatrónCost + (2 * RestoCost);`
+Memoización: `if (memo.containsKey...)`: Antes de calcular nada, miro si ya resolví este estado antes. Esto es vital para no repetir trabajo en ramas idénticas.
+
+**Paso 2: El Bucle y el Filtro de Paridad**: Ahora iteramos sobre esos patterns que pre-calculamos en el constructor. Pero, atención a este if: `if (diff < 0 || diff % 2 != 0)`
+
+Este es nuestro Filtro de Paridad (Poda). Como la operación original era multiplicar por 2, para ir hacia atrás estamos obligados a que la diferencia sea divisible por 2 perfectamente. Si al restar un patrón me sobra 1 (es impar) o me paso (negativo), esa rama muere aquí. valid = false.
+
+**Paso 3: La Transición Recursiva**: Si la pieza encaja (es par), preparamos el siguiente paso: `nextState.add(diff / 2);`
+
+**Paso 4: El Coste Ponderado)**: Finalmente, si la recursión devuelve un resultado válido, calculamos el precio: `minCost = ... patternCost + 2 * costRest`
 
