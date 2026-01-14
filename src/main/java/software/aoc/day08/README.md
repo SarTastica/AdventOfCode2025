@@ -33,12 +33,11 @@ Modelé la conexión (punto A, punto B, distancia) como una `private static clas
 ## 3. Parte A: Union-Find (Conjuntos Disjuntos)
 
 ### El Algoritmo
-Para gestionar qué cajas están conectadas con cuáles, utilicé la estructura de datos **Union-Find**. Es el estándar para gestionar grupos de elementos que se fusionan dinámicamente.
+Para gestionar las conexiones entre las cajas, he implementado un algoritmo llamado Union-Find.
 
-**Implementación (Find & Union):**
-Utilizo un array `parent` donde cada índice apunta a su nodo padre.
-
-El método Find busca el lider i y el método Union une dos grupos.
+* El Concepto del 'Jefe Supremo': Al principio, cada caja es su propio jefe `parent[i] == i`. Nadie está conectado con nadie. Pero cuando conecto dos cajas, una pasa a ser 'subordinada' de la otra.
+* El Método find: Este método es recursivo. Si le pregunto a la caja 5 '¿quién es tu líder?', ella mira a su padre. Si su padre tiene otro padre, sigue subiendo hasta encontrar al Líder Supremo. Una vez que encuentro al líder supremo, hago que todas las cajas intermedias reporten directamente a él. Así, la próxima vez que pregunte, la respuesta es instantánea.
+* El Método union: Cuando conecto la caja A y la caja B, busco al líder supremo de A (rootA) y al líder supremo de B (rootB). Si son líderes diferentes, hago que uno se convierta en jefe del otro `parent[rootA] = rootB`.
 
 
 ### Método calculateCircuitScore
