@@ -7,6 +7,11 @@ Nos enfrentamos a una hoja de ejercicios alienígena donde el desafío no es la 
 **La Entrada:**
 Un archivo de texto que representa "hojas de cálculo" donde los problemas matemáticos no están línea por línea, sino distribuidos espacialmente.
 
+123  328   51   64
+ 45   64  387   23
+  6   98  215  314
+* +    * +
+
 * **Formato General:** Los problemas están agrupados en bloques visuales separados por **columnas verticales vacías** (espacios en blanco).
 * **Parte A (Horizontal):** Debemos leer los problemas de izquierda a derecha. Los números y operadores se extraen cortando el texto horizontalmente.
 * **Parte B (Vertical):** Descubrimos que la lectura correcta es de arriba a abajo. Los números se forman leyendo los dígitos verticalmente en cada columna, lo que complica el parseo debido a que las líneas de texto tienen longitudes irregulares ("ragged arrays").
