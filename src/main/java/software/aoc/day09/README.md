@@ -51,56 +51,51 @@ final int y;
 long width = Math.abs(t1.x - t2.x) + 1;
 long height = Math.abs(t1.y - t2.y) + 1;
 ```
+>  Si tengo una baldosa en $x=2$ y otra en $x=4$, la resta matemática es $2$. Pero físicamente hay 3 baldosas involucradas: la 2, la 3 y la 4. Por eso sumo 1.
 
 ***
 
+
 ## 4. Evolución a la Parte B: Geometría Computacional
 
-### El Desafío: Contención Geométrica
-El requisito cambia drásticamente: el rectángulo debe estar contenido estrictamente dentro del perímetro formado por las baldosas rojas. Ya no es solo un cálculo de área, es un problema de topología.
+### 1. Modelado del Problema (Polygon API)
 
-### Estrategia: Reutilización de `java.awt.Polygon`
-En lugar de implementar algoritmos manuales complejos (como Ray Casting) que son propensos a errores de "corner cases", decidí aprovechar la potencia de la librería estándar de Java.
+En la Parte B, el problema se convierte en un reto de **Topología**: verificar si un rectángulo está estrictamente contenido dentro de un perímetro irregular. Utilizo la clase java.awt.Polygon del JDK, que ya contiene algoritmos de intersección altamente optimizados y probados.
 
-### Construcción del Polígono
-   Utilizo la clase java.awt.Polygon del JDK para modelar el cine.
-
-Código:
+**Código:**
 ```
-Polygon boundary = new Polygon();
+java.awt.Polygon boundary = new java.awt.Polygon();
 for (Tile t : tiles) {
-boundary.addPoint(t.x, t.y);
+    boundary.addPoint(t.x, t.y);
 }
 ```
->Defensa (Don't Reinvent the Wheel): Aplico el principio de ingeniería de reutilización. La clase Polygon ya está altamente optimizada y probada por los ingenieros de Oracle para gestionar vértices y contornos complejos. Escribir esto desde cero sería ineficiente y arriesgado.
 
-### Validación con "Epsilon Shrinking" (La Lógica del Núcleo)
-   Este es el punto crítico de la solución. El método nativo `boundary.contains` sigue reglas de rasterizado de gráficos (píxeles), donde los bordes derechos e inferiores suelen excluirse para evitar dibujar doble. Esto causaba falsos negativos en nuestro problema de lógica discreta.
+### 2. Estrategia de Búsqueda y Optimización
 
-**El Desafío**: Un rectángulo válido que comparte pared con el cine devolvía false.
+Para encontrar la solución, itero sobre todos los pares posibles de baldosas usándolas como esquinas opuestas del rectángulo candidato.
 
-**La Solución (Ingeniería)**: Implementé una técnica de reducción infinitesimal ("Epsilon Shrinking").
-
-Código:
+Código (Cláusula de Guarda):
 ```
-// Preguntamos por un rectángulo virtual encogido un 1% hacia adentro
-if (boundary.contains(minX + 0.01, minY + 0.01, width - 0.02, height - 0.02)) {
-// ...
-}
-```
-Justificación Técnica:
-
-1. Premisa: Sabemos que las 4 esquinas del rectángulo son válidas a priori porque se construyen iterando sobre la lista de baldosas (tiles.get(i)).
-
-2. Riesgo: El único riesgo real es que el rectángulo atraviese una zona vacía (un hueco) en el centro.
-
-3. Corrección: Al validar un área infinitesimalmente más pequeña (+0.01), evitamos los problemas de exclusión de bordes de la librería AWT. Si el "núcleo" del rectángulo está dentro, y las esquinas son válidas, entonces la figura completa es válida.
-
-### Filtrado de Casos Degenerados
-   Antes de realizar la validación costosa, descarto figuras que no forman un área.
-
-Código:
-```
+int width = Math.abs(t1.x - t2.x);
+int height = Math.abs(t1.y - t2.y);
+// Descartar líneas planas inmediatamente
 if (width == 0 || height == 0) continue;
-Defensa: Esto actúa como una cláusula de guarda (Guard Clause). Evita procesar líneas planas (rectángulos con área 0), ahorrando ciclos de CPU y evitando comportamientos indefinidos en la lógica de contención.
 ```
+
+> Defensa (Eficiencia):Antes de realizar cualquier cálculo geométrico costoso, aplico una Cláusula de Guarda. Descarto inmediatamente figuras con dimensiones nulas, ahorrando ciclos de CPU valiosos y evitando comprobaciones innecesarias.
+
+### 3. El Núcleo Lógico: Validación con "Epsilon Shrinking"
+
+Las librerías gráficas suelen excluir los bordes exactos. Si mi rectángulo toca la pared, el método nativo `contains` devolvería false incorrectamente.
+Código:
+```
+// Contracción infinitesimal (0.01) para evitar falsos negativos en bordes
+double epsilon = 0.01;
+if (boundary.contains(minX + epsilon, minY + epsilon, 
+                      width - 2*epsilon, height - 2*epsilon)) {
+    // Es válido
+}
+```
+
+> Defensa Técnica (Robustez Matemática): Implementé una técnica de Contracción de Límites. Al encoger el rectángulo virtualmente un margen de seguridad (epsilon = 0.01), alejo los bordes de la "zona de conflicto". Si el "núcleo" del rectángulo contraído está dentro, garantizamos matemáticamente que la figura entera es válida, solucionando la limitación de la API gráfica.
+

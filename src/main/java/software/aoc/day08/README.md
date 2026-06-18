@@ -33,17 +33,17 @@ Modelé la conexión (punto A, punto B, distancia) como una `private static clas
 ## 3. Parte A: Union-Find (Conjuntos Disjuntos)
 
 ### El Algoritmo
-Para gestionar qué cajas están conectadas con cuáles, utilicé la estructura de datos **Union-Find**. Es el estándar para gestionar grupos de elementos que se fusionan dinámicamente.
+Para gestionar las conexiones entre las cajas, he implementado un algoritmo llamado Union-Find.
 
-**Implementación (Find & Union):**
-Utilizo un array `parent` donde cada índice apunta a su nodo padre.
-
-El método Find busca el lider i y el método Union une dos grupos.
+* El Concepto del 'Jefe Supremo': Al principio, cada caja es su propio jefe `parent[i] == i`. Nadie está conectado con nadie. Pero cuando conecto dos cajas, una pasa a ser 'subordinada' de la otra.
+* El Método find: Este método es recursivo. Si le pregunto a la caja 5 '¿quién es tu líder?', ella mira a su padre. Si su padre tiene otro padre, sigue subiendo hasta encontrar al Líder Supremo. Una vez que encuentro al líder supremo, hago que todas las cajas intermedias reporten directamente a él. Así, la próxima vez que pregunte, la respuesta es instantánea.
+* El Método union: Cuando conecto la caja A y la caja B, busco al líder supremo de A (rootA) y al líder supremo de B (rootB). Si son líderes diferentes, hago que uno se convierta en jefe del otro `parent[rootA] = rootB`.
 
 
 ### Método calculateCircuitScore
 
 Este método osquesta todo:
+* Utilizo un Stream para mapear cada línea de texto a una nueva instancia de la clase Point3D y recolecto todos esos objetos en una lista. También guardo n, que es la cantidad total de puntos
 * Genera todas las conexiones
 * `for (int i = 0; i < n; i++) {
     for (int j = i + 1; j < n; j++) {
@@ -51,8 +51,12 @@ Este método osquesta todo:
         allConnections.add(new Connection(i, j, dist));
     }
 }` 
+
+
 * Se ordena la lista de la distancia de la más corta a la más larga
 * `Collections.sort(allConnections);`
+
+
 * Toma solo las primeras 1000 conexiones (más cortas) y las une con el método find-union
 * `int limit = Math.min(1000, allConnections.size());
 for (int i = 0; i < limit; i++) {

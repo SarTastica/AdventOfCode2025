@@ -10,7 +10,7 @@ Una lista de conexiones que define la topología de la red (formato de Lista de 
 Ejemplo: `bbb: ddd eee` (El dispositivo `bbb` envía datos a `ddd` y `eee`).
 
 **Parte A:**
-El problema es encontrar redundancia o conectividad. Calcular el número total de **caminos únicos** que existen desde un punto de inicio (`you`) hasta la salida principal (`out`).
+Calcular el número total de **caminos únicos** que existen desde un punto de inicio (`you`) hasta la salida principal (`out`).
 
 **Parte B:**
 El problema añade restricciones de paso obligatorio. Calcular cuántos caminos desde el servidor (`svr`) hasta la salida (`out`) pasan obligatoriamente por dos componentes específicos: el conversor (`dac`) y la transformada de Fourier (`fft`), sin importar el orden en que se visiten.
@@ -20,72 +20,100 @@ El problema añade restricciones de paso obligatorio. Calcular cuántos caminos 
 ## 2. Arquitectura
 
 He modelado el problema utilizando **Teoría de Grafos**.
-La clase `ReactorManager` encapsula toda la lógica, manteniendo **Alta Cohesión** entre el parseo de los datos y los algoritmos de recorrido.
+La clase `ReactorManager` engloba toda la lógica, manteniendo **Alta Cohesión** entre el parseo de los datos y los algoritmos de recorrido.
 
 **Decisiones de Diseño:**
 1.  **Grafo Dirigido (Directed Graph):** Los datos fluyen en un solo sentido.
-2.  **Lista de Adyacencia:** Utilicé un `Map<String, List<String>>` para representar el grafo ya el mapa es eficiente en espacio y permite acceso constante (O(1)) a los vecinos.
-3.  **Gestión de Estado:** La clase limpia sus estructuras internas (`memo.clear()`) antes de cada cálculo, permitiendo la reutilización segura de la instancia.
+2.  **Lista de Adyacencia:**
+3.  **Gestión de Estado:** 
 
 ***
 
 ## 3. Parte A: DFS y Memoización
 
-### 1. Método countPaths (El Orquestador y Constructor)
+### 1. Estructuras de Datos y Modelado
 
-Este método actúa como la Fachada del algoritmo. Tiene dos responsabilidades principales: Parseo y Gestión de Estado.
+Para representar la red de dispositivos, elegí un enfoque clásico de Teoría de Grafos.
 
-Defensa Técnica:
+El Código:
+```
+private final Map<String, List<String>> adjList = new HashMap<>();
+private final Map<String, Long> memo = new HashMap<>();
+```
+* Grafo Dirigido (adjList): El mapa me permite acceso O(1) para obtener los vecinos de cualquier nodo dado su nombre (String).
+* Caché (memo): Almacena NombreNodo -> NúmeroDeCaminos, permitiendo que el algoritmo recuerde lo que ya calculó
 
-* Construcción de Lista de Adyacencia: Transformo la entrada de texto en un Grafo Dirigido representado por un `Map<String, List<String>>`. Elegí un HashMap porque permite búsquedas de nodos en tiempo constante O(1), lo cual es crítico para el rendimiento del DFS posterior.
-* `Regex \\s+`: Utilizo esta expresión regular para dividir los destinos. Es robusta porque funciona correctamente tanto si hay un solo espacio como si hay múltiples espacios accidentales entre los nombres de los nodos.
-* `memo.clear()`: Esto es fundamental para el ciclo de vida del objeto. Garantiza que si llamo a `countPaths` varias veces (por ejemplo, en tests unitarios o diferentes partes del problema), no estoy reutilizando datos 'sucios' de cálculos anteriores."
+### 2. Método countPaths: Ingesta y Limpieza
 
-### 2. Implementé una **Búsqueda en Profundidad (DFS)** optimizada.
+Este método actúa como el Constructor del Grafo y orquestador. Su responsabilidad es transformar texto crudo en una estructura navegable.
+```
+String[] parts = line.split(":");
+// ...
+String[] destinations = parts[1].trim().split("\\s+");
+adjList.put(source, Arrays.asList(destinations));
+```
 
-Este es el núcleo de la solución. Implementa una Búsqueda en Profundidad (DFS) optimizada con Memoización
+* Primero divido por : para separar el nodo origen de sus conexiones.
+* Sanitización (\\s+): Al procesar los destinos, uso la expresión regular `\\s+` en lugar de un espacio simple " ". Esto hace el código robusto ante entradas "sucias". 
 
-Defensa Técnica (Puntos Clave):
+Manejo de Nodos Hoja (Edge Cases)
+```
+} else {
+    adjList.put(source, new ArrayList<>());
+}
+```
+* Si un dispositivo aparece a la izquierda pero no tiene conexiones a la derecha (es un callejón sin salida), lo añado al mapa con una lista vacía. Esto simplifica enormemente el DFS posterior: no tengo que comprobar si adjList.get(nodo) es null, solo itero sobre una lista vacía y el bucle termina naturalmente.
 
-* ¿Qué hace el algoritmo? Si estoy en el nodo X, ¿de cuántas formas puedo llegar a la salida?. Para responderlo, pregunta a todos sus vecinos y suma sus respuestas.
-* El Caso Base: Si el nodo actual es 'out', retornamos 1. Esto significa que hemos completado un camino exitoso. Este 1 se propagará hacia atrás sumándose en los nodos anteriores.
-* La memoización evita recalcular el mismo trabajo millones de veces. Transforma la complejidad de Exponencial (lenta) a Lineal (rápida). Simplemente, calculamos cada nodo una única vez, guardamos el resultado, y en futuras visitas lo recuperamos instantáneamente.
-* Si `adjList` no contiene el nodo o la lista de vecinos está vacía, el bucle for no se ejecuta, `totalPaths` se mantiene en 0 y eso es lo que se retorna. Esto modela correctamente un 'callejón sin salida' en el grafo."
+Gestión de Estado (Idempotencia)
+```
+memo.clear();
+return dfs("you");
+```
+* La llamada a `memo.clear()` es crítica. Dado que memo es un campo de instancia, debo limpiarlo antes de cada ejecución. Esto garantiza que el objeto ReactorManager sea reutilizable y que cálculos de tests anteriores no corrompan el resultado actual.
+
+
+### DFS
+Este método dfs resuelve el problema utilizando Programación Dinámica. 
+* Defino un caso base: llegar a 'out' cuenta como 1 camino.
+* Para cualquier otro nodo, el número de caminos es la suma recursiva de los caminos de sus vecinos.
+* El grafo tiene muchas rutas que convergen. Al almacenar el resultado de cada nodo en el mapa memo la primera vez que lo visito, transformo una complejidad exponencial en una lineal respecto al número de aristas y vértices
 
 ***
 
-
-
 ## 4. Parte B: Descomposición Combinatoria
 
-### 1. Método countPathsViaComponents
+### 1. Método countPathsViaComponents: Estrategia y Topología
 
-Este método actúa como el punto de entrada principal. Se encarga de reconstruir el grafo y definir las rutas lógicas de alto nivel que cumplen con los requisitos (pasar por `dac` y `fft`).
+En la Parte B, el requisito cambia: debemos pasar obligatoriamente por dos nodos intermedios (dac y fft). En lugar de complicar el DFS con estados extra, apliqué una Descomposición Topológica.
 
-**Defensa Técnica:**
+* Análisis de Permutaciones:
+```
+long path1 = calculateSequentialPath("svr", "dac", "fft", "out");
+long path2 = calculateSequentialPath("svr", "fft", "dac", "out");
+```
+> Dado que el grafo es dirigido, solo existen dos secuencias lógicas posibles para visitar los componentes. Calculo ambas rutas independientemente y las sumo (path1 + path2) para cubrir todo el espacio de soluciones.
 
-* **Identificación de Permutaciones:** Dado que el grafo es dirigido y debemos visitar dos nodos intermedios, determiné que solo existen dos secuencias topológicas válidas: `svr -> dac -> fft -> out` y `svr -> fft -> dac -> out`.
-* **Reutilización de Parseo:** Mantengo la misma lógica de construcción del `HashMap` (Lista de Adyacencia) que en la Parte A, asegurando consistencia en la representación del grafo.
-* **Suma de Resultados:** Calculo los caminos de ambas permutaciones por separado y devuelvo la suma, cubriendo así el espacio total de soluciones posibles.
+### 2. Método calculateSequentialPath: Divide y Vencerás 
 
-### 2. Método calculateSequentialPath (Lógica de Segmentación)
+Para resolver cada permutación, utilicé la estrategia de Divide y Vencerás, fragmentando el problema en 3 tramos independientes (Legs).
+* `return leg1 * leg2 * leg3;`
+> Si hay N formas de hacer el tramo 1 y M formas de hacer el tramo 2, el total es NxM. Esto es computacionalmente mucho más eficiente que simular la ruta completa de una sola vez.
 
-Este método implementa la estrategia de "Divide y Vencerás". En lugar de buscar un camino complejo con restricciones de estado, divide el problema en segmentos secuenciales (legs).
+* Optimización: `if (leg1 == 0) return 0;`
+> Aplico una Cláusula de Guarda. Si el primer tramo es imposible (0 caminos), corto la ejecución inmediatamente.
+
+### 3. Adaptación del Motor dfs y Gestión de Memoria
+
+Finalmente, tuve que refactorizar el motor de búsqueda para hacerlo reutilizable.
+
+* Invalidación de Caché (Cache Invalidation):
+```
+private long countPaths(String start, String end) {
+    memo.clear(); // CRÍTICO
+    return dfs(start, end);
+}
+```
+
+> Ees obligatorio limpiar la caché `memo.clear()` entre llamadas. Si no lo hiciera, el tramo 2 reutilizaría cálculos 'sucios' del tramo 1 apuntando al destino equivocado.
 
 
-
-**Defensa Técnica (Puntos Clave):**
-
-* **Principio Multiplicativo (Combinatoria):** Aplico la regla fundamental del conteo. Si hay $N$ formas de ir de A a B, y $M$ formas de ir de B a C, el total es $N \times M$. La línea `return leg1 * leg2 * leg3` es infinitamente más eficiente que simular las rutas completas.
-* **Fail Fast (Optimización):** Implemento cláusulas de guarda: `if (leg1 == 0) return 0`. Si el primer tramo del camino no tiene solución, aborto inmediatamente el cálculo de los siguientes tramos, ahorrando ciclos de CPU innecesarios.
-* **Abstracción de Tramos:** Divido la ruta en tres sub-problemas independientes: Inicio→Intermedio1, Intermedio1→Intermedio2, Intermedio2→Fin.
-
-### 3. Métodos countPaths y dfs (Motor de Búsqueda y Estado)
-
-Aquí adaptamos el motor de búsqueda para ser genérico y gestionamos el ciclo de vida de la memoria caché.
-
-**Defensa Técnica (Puntos Clave):**
-
-* **Limpieza Crítica de Estado (`memo.clear()`):** Esto es el detalle más importante de la Parte B. La memoización almacena "caminos hasta el objetivo". Como el objetivo cambia en cada tramo (primero vamos a `dac`, luego a `fft`), es obligatorio limpiar la caché entre llamadas. Si no, obtendríamos resultados "sucios" del tramo anterior.
-* **DFS Genérico (Parametrizado):** Refactoricé el método `dfs` para aceptar un parámetro `target` dinámico. En la Parte A el destino siempre era "out", pero aquí necesitamos calcular caminos hacia cualquier nodo intermedio (`dac`, `fft`), lo que aumenta la flexibilidad del algoritmo.
-* **Memoización Contextual:** Al igual que en la Parte A, cacheamos los resultados parciales (`memo.put`), garantizando una complejidad lineal $O(V+E)$ para cada uno de los tramos secuenciales.

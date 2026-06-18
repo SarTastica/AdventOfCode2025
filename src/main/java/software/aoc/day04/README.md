@@ -52,8 +52,6 @@ Delegué la comprobación de índices (`r >= 0 && r < rows...`) al método `isVa
 ---
 ## 4. Evolución a la Parte B: Simulación por Generaciones
 
-El requisito cambió de un conteo estático a una simulación dinámica (similar al "Juego de la Vida").
-
 ### El Desafío: Efectos Colaterales (Side Effects)
 No podemos eliminar los rollos *mientras* iteramos el tablero en el mismo bucle.
 * **Problema:** Si borro el rollo en la posición (0,0), el rollo en (0,1) vería un vecino menos inmediatamente. Esto alteraría el resultado de la simulación dentro de la misma "generación", produciendo datos incorrectos.
@@ -79,15 +77,3 @@ if (isAccessible(r, c)) { toRemove.add(new int[]{r, c}); }
 } while (changesMade);
 ```
 
-### Estructuras de Datos (KISS)
-Para la lista temporal usé `List<int[]>`.
-> **Defensa:** Podría haber creado una clase `Point`, pero dado que estas coordenadas son objetos efímeros que solo viven dentro del bucle `do-while`, un array de primitivos es la solución más eficiente y directa (KISS), evitando la sobre-ingeniería.
----
-***
-
-## 5. Conclusión
-
-He transformado un problema de índices en una solución robusta y mantenible.
-
-* **Legibilidad:** El uso de vectores `DX/DY` elimina el "código espagueti" de los condicionales direccionales.
-* **Corrección:** La estrategia de actualización en dos fases en la Parte B garantiza que la simulación sea determinista y correcta, evitando condiciones de carrera lógicas al modificar el estado del tablero.

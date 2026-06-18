@@ -64,19 +64,56 @@ Implementa el algoritmo BFS (Búsqueda en Anchura) para encontrar el camino más
 * Utiliza una cola (ArrayDeque) para explorar los estados nivel por nivel y un mapa (HashMap) para registrar los visitados y evitar ciclos. 
 * La transición de estados (pulsar botón) se realiza mediante la operación XOR (^), que invierte los bits (enciende/apaga luces) de forma instantánea y eficiente.
 
+**Algoritmo**
+* La Cola (queue): Es mi lista de tareas pendientes. Empiezo poniendo el estado inicial (el 0).
+* El Bucle: Saco un número de la lista y miro: '¿A qué otros números puedo llegar desde aquí pulsando un botón?'.
+* El Mapa (visited): Si encuentro un número nuevo, lo apunto y lo meto al final de la cola. Si ya lo había visto antes, lo ignoro para no dar vueltas en círculos.
+
 ***
 
 ## 4. Parte B: Recursión y Descomposición Binaria
 
-### 1. Método Machine (Constructor)
-**Parsing y Pre-cálculoExtracción:**
-* Convierte los Strings de entrada en Listas de Long (objetivos) y Integer (botones).
-* Generación de Patrones: Calcula todas las combinaciones posibles de pulsar los botones una sola vez (2^N) utilizando un bucle de máscaras de bits.
-* Almacena en un Mapa (patterns) qué "efecto" produce cada combinación y su coste mínimo. Esto evita recalcular combinaciones durante la recursión.
+### 1. El Constructor: Parsing y Pre-cálculo
 
-### 2. Método solve (Recursivo)
-**Algoritmo: Divide y Vencerás**
-* Memoización: Usa un mapa (memo) para guardar estados resueltos y podar ramas del árbol. 
-* Lógica de Paridad: Busca un patrón pre-calculado tal que (objetivo - patrón) sea par y no negativo.
-* Reducción de Estado: Si es válido, divide el residuo por 2 (diff / 2), resolviendo el problema bit a bit (de menor a mayor peso).
-* Cálculo de Coste: Coste = Coste_Patrón + (2 * Coste_Recursivo). Multiplica por 2 porque el siguiente nivel recursivo afecta a una potencia binaria superior.
+Vamos a ver cómo inicializamos cada máquina. Este constructor hace dos cosas clave: 
+* primero interpreta los datos de entrada
+* segundo, realiza un pre-cálculo masivo para optimizar el rendimiento después.
+
+### Parsing y Limpieza
+
+Aquí tomamos la cadena de texto cruda `line` y extraemos dos cosas:
+* Los targets: que son los valores a los que queremos llegar
+* Los buttons: que convertimos en listas de enteros.
+
+Cada lista nos dice qué registros incrementa ese botón en concreto.
+
+### La Estrategia de Bitmasking
+
+Fíjense en esta línea: `int limit = 1 << buttons.size();` Lo que estoy preparando es un bucle que va a generar todas las combinaciones posibles de botones pulsados simultáneamente. 
+> Si tengo 3 botones, probaré las 8 combinaciones posibles de golpe.
+
+### El Bucle de Simulación)
+
+Entramos en el bucle `for (int mask...)`. Aquí recorremos cada combinación. 
+
+* Dentro, uso esta condición: `if ((mask & (1 << i)) != 0)` Esto traduce la máscara binaria a la realidad: '¿Está el botón i activado en esta combinación?'. Si lo está, aumento el coste (cost++) y sumamos su impacto a la lista de efectos (effect). 
+
+### La Tabla de Optimización
+
+Finalmente, guardamos el resultado en nuestro mapa `patterns`. Pero solo guardamos un efecto si es nuevo o si hemos encontrado una forma más barata (menos botones) de conseguir el mismo resultado.
+
+### 2. Método solve: Ingeniería Inversa (Recursividad)
+
+Para resolver la Parte B, tuve que cambiar radicalmente de estrategia. Simular hacia adelante generaba un árbol exponencial infinito, así que apliqué Ingeniería Inversa: en lugar de multiplicar para llegar al objetivo, empiezo en el objetivo y divido hasta llegar a cero.
+
+El algoritmo se basa en 4 pilares:
+
+1. Gestión de Estado y Memoización (La Caché): Lo primero es la eficiencia. Antes de calcular nada, consulto mi mapa `memo`. Si ya sé cuánto cuesta llegar a cero desde el estado actual, devuelvo el dato inmediatamente.
+
+2. El Filtro de Paridad: Itero sobre los patrones pre-calculados en el constructor, pero aplico una regla de oro:
+
+'Solo puedo deshacer una multiplicación por 2 si el número resultante es PAR'. Por eso tengo la condición `if (diff % 2 != 0)`. Si al restar el patrón me queda un número impar, significa que ese camino es matemáticamente imposible (porque en el paso anterior debió haber una multiplicación por 2). Corto esa rama inmediatamente.
+
+3. La Transición Recursiva: Si el filtro pasa, procedo a la recursión. La línea `nextState.add(diff / 2)` es donde deshago la operación de multiplicación dividiendo entre dos.
+
+4. El Coste Ponderado: Al volver de la recursión, calculo el precio total con: `patternCost + 2 * costRest`.
