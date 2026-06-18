@@ -1,29 +1,32 @@
 package software.aoc.day01.b;
 
-public class Dial {
+import software.aoc.day01.CajaFuerte;
+
+public class Dial implements CajaFuerte {
     private int currentPosition;
     private int zeroHits;
     private static final int MAX_POSITIONS = 100;
+    private static final int START_POSITION = 50;
 
     public Dial() {
-        this.currentPosition = 50;
+        this.currentPosition = START_POSITION;
         this.zeroHits = 0;
     }
 
-    public void apply(Order order) {
-        for (int i = 0; i < order.getAmount(); i++) {
+    @Override
+    public void rotateLeft(int amount) {
+        applyRotation(amount, -1);
+    }
 
-            if (order.getDirection() == 'L') {
-                this.currentPosition--;
-                if (this.currentPosition < 0) {
-                    this.currentPosition = 99;
-                }
-            } else if (order.getDirection() == 'R') {
-                this.currentPosition++;
-                if (this.currentPosition >= MAX_POSITIONS) {
-                    this.currentPosition = 0;
-                }
-            }
+    @Override
+    public void rotateRight(int amount) {
+        applyRotation(amount, 1);
+    }
+
+    private void applyRotation(int amount, int direction) {
+        for (int i = 0; i < amount; i++) {
+            // (ej. -1 mod 100 = 99)
+            this.currentPosition = Math.floorMod(this.currentPosition + direction, MAX_POSITIONS);
 
             if (this.currentPosition == 0) {
                 this.zeroHits++;
@@ -31,6 +34,7 @@ public class Dial {
         }
     }
 
+    @Override
     public int getZeroHits() {
         return zeroHits;
     }
