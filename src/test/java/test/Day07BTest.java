@@ -1,30 +1,34 @@
 package test;
 
 import org.junit.jupiter.api.Test;
-import software.aoc.day07.b.TachyonLabs;
+import software.aoc.day07.Manifold;
+import software.aoc.day07.b.QuantumTachyonSimulator;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class Day07BTest {
 
     @Test
-    public void solveDay07PartB() throws IOException {
-        Path path = Paths.get("src/test/resources/day07-b/input.txt");
-        List<String> lines = Files.readAllLines(path);
+    public void solveDay07PartB() throws Exception {
+        var resource = getClass().getClassLoader().getResource("day07-a/input.txt");
+        if (resource == null) throw new RuntimeException("Archivo no encontrado");
 
-        TachyonLabs labs = new TachyonLabs(lines);
-        long result = labs.countTimelines();
+        List<String> lines = Files.readAllLines(Path.of(resource.toURI()));
+
+        Manifold manifold = new Manifold(lines);
+
+        QuantumTachyonSimulator simulator = new QuantumTachyonSimulator(manifold);
+
+        long result = simulator.countTimelines();
 
         System.out.println("***********************************");
-        System.out.println("SOLUCION DAY 7 - PART B: " + result);
+        System.out.println("SOLUCIÓN DAY 7 - PART B: " + result);
         System.out.println("***********************************");
 
-        assertTrue(result > 0);
+        assertEquals(15811946526915L, result, "El total de líneas temporales no coincide.");
     }
 }
