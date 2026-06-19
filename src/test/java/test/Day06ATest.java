@@ -1,30 +1,39 @@
 package test;
 
 import org.junit.jupiter.api.Test;
-import software.aoc.day06.a.CephalopodMath;
+import software.aoc.day06.CephalopodCalculator;
+import software.aoc.day06.MathProblem;
+import software.aoc.day06.WorksheetParser;
+import software.aoc.day06.StrategyProvider;
+import software.aoc.day06.a.StandardMathProvider;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class Day06ATest {
 
     @Test
-    public void solveDay06PartA() throws IOException {
-        Path path = Paths.get("src/test/resources/day06-a/input.txt");
-        List<String> lines = Files.readAllLines(path);
+    public void solveDay06PartA() throws Exception {
+        var resource = getClass().getClassLoader().getResource("day06-a/input.txt");
+        if (resource == null) throw new RuntimeException("Archivo no encontrado");
 
-        CephalopodMath solver = new CephalopodMath();
-        long result = solver.calculateGrandTotal(lines);
+        List<String> lines = Files.readAllLines(Path.of(resource.toURI()));
+
+        WorksheetParser parser = new WorksheetParser();
+        List<MathProblem> problems = parser.parse(lines);
+
+        StrategyProvider mathProvider = new StandardMathProvider();
+        CephalopodCalculator calculator = new CephalopodCalculator(mathProvider);
+
+        long result = calculator.calculateGrandTotal(problems);
 
         System.out.println("***********************************");
-        System.out.println("SOLUCION DAY 6 - PART A: " + result);
+        System.out.println("SOLUCIÓN DAY 6 - PART A: " + result);
         System.out.println("***********************************");
 
-        assertTrue(result >= 0);
+        assertEquals(6171290547579L, result);
     }
 }
