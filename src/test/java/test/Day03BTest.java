@@ -1,30 +1,37 @@
 package test;
 
 import org.junit.jupiter.api.Test;
-import software.aoc.day03.b.PowerSystem;
+import software.aoc.day03.EscalatorPowerSystem;
+import software.aoc.day03.JoltageCalculator;
+import software.aoc.day03.b.MaxTwelveDigitJoltage;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
+import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class Day03BTest {
 
     @Test
-    public void solveDay03PartB() throws IOException {
-        Path path = Paths.get("src/test/resources/day03-b/input.txt");
-        List<String> lines = Files.readAllLines(path);
+    public void solveDay03PartB() throws Exception {
+        var resource = getClass().getClassLoader().getResource("day03-a/input.txt");
+        if (resource == null) {
+            throw new RuntimeException("No se encuentra el archivo input.txt");
+        }
 
-        PowerSystem powerSystem = new PowerSystem();
-        long totalJoltage = powerSystem.calculateTotalPower(lines);
+        JoltageCalculator nuevaEstrategia = new MaxTwelveDigitJoltage();
+        EscalatorPowerSystem system = new EscalatorPowerSystem(nuevaEstrategia);
+
+        long result = 0;
+        try (Stream<String> lines = Files.lines(Path.of(resource.toURI()))) {
+            result = system.calculateTotalJoltage(lines);
+        }
 
         System.out.println("***********************************");
-        System.out.println("SOLUCION DAY 3 - PART B: " + totalJoltage);
+        System.out.println("SOLUCIÓN DAY 3 - PART B: " + result);
         System.out.println("***********************************");
 
-        assertTrue(totalJoltage > 0);
+        assertEquals(172601598658203L, result, "El total no coincide con la Parte B.");
     }
 }

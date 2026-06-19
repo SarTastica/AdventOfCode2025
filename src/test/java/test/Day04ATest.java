@@ -1,30 +1,37 @@
 package test;
 
 import org.junit.jupiter.api.Test;
-import software.aoc.day04.a.Warehouse;
+import software.aoc.day04.ForkliftOptimizer;
+import software.aoc.day04.Grid;
+import software.aoc.day04.AccessibilityRule;
+import software.aoc.day04.a.FewerThanFourRule;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class Day04ATest {
 
     @Test
-    public void solveDay04PartA() throws IOException {
-        Path path = Paths.get("src/test/resources/day04-a/input.txt");
-        List<String> lines = Files.readAllLines(path);
+    public void solveDay04PartA() throws Exception {
+        var resource = getClass().getClassLoader().getResource("day04-a/input.txt");
+        if (resource == null) throw new RuntimeException("Archivo no encontrado");
 
-        Warehouse warehouse = new Warehouse(lines);
-        long result = warehouse.countAccessibleRolls();
+        List<String> lines = Files.readAllLines(Path.of(resource.toURI()));
+
+        Grid grid = new Grid(lines);
+
+        AccessibilityRule regla = new FewerThanFourRule();
+        ForkliftOptimizer optimizer = new ForkliftOptimizer(regla);
+
+        long result = optimizer.countAccessibleRolls(grid);
 
         System.out.println("***********************************");
-        System.out.println("SOLUCION DAY 4 - PART A: " + result);
+        System.out.println("SOLUCIÓN DAY 4 - PART A: " + result);
         System.out.println("***********************************");
 
-        assertTrue(result >= 0);
+        assertEquals(1457L, result);
     }
 }

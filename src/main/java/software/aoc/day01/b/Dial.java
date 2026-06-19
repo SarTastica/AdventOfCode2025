@@ -25,7 +25,6 @@ public class Dial implements CajaFuerte {
 
     private void applyRotation(int amount, int direction) {
         for (int i = 0; i < amount; i++) {
-            // (ej. -1 mod 100 = 99)
             this.currentPosition = Math.floorMod(this.currentPosition + direction, MAX_POSITIONS);
 
             if (this.currentPosition == 0) {
