@@ -1,30 +1,39 @@
 package test;
 
 import org.junit.jupiter.api.Test;
-import software.aoc.day10.b.Factory;
+import software.aoc.day10.FactoryParser;
+import software.aoc.day10.Machine;
+import software.aoc.day10.b.JoltageManager;
+import software.aoc.day10.b.JoltageOptimizationStrategy;
+import software.aoc.day10.b.MemoizedBfsJoltageOptimizer; // NUEVO IMPORT
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class Day10BTest {
 
     @Test
-    public void solveDay10PartB() throws IOException {
-        Path path = Paths.get("src/test/resources/day10-b/input.txt");
-        List<String> lines = Files.readAllLines(path);
+    public void solveDay10PartB() throws Exception {
+        var resource = getClass().getClassLoader().getResource("day10-a/input.txt");
+        if (resource == null) throw new RuntimeException("Archivo no encontrado");
 
-        Factory factory = new Factory();
-        long result = factory.calculateTotalJoltagePresses(lines);
+        List<String> lines = Files.readAllLines(Path.of(resource.toURI()));
+
+        FactoryParser parser = new FactoryParser();
+        List<Machine> machines = parser.parse(lines);
+
+        JoltageOptimizationStrategy strategy = new MemoizedBfsJoltageOptimizer();
+        JoltageManager manager = new JoltageManager(strategy);
+
+        long result = manager.calculateTotalPresses(machines);
 
         System.out.println("***********************************");
-        System.out.println("SOLUCION DAY 10 - PART B: " + result);
+        System.out.println("SOLUCIÓN DAY 10 - PART B: " + result);
         System.out.println("***********************************");
 
-        assertTrue(result > 0);
+        assertEquals(15017L, result);
     }
 }
