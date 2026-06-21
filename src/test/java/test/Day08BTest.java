@@ -1,30 +1,35 @@
 package test;
 
 import org.junit.jupiter.api.Test;
-import software.aoc.day08.b.CircuitManager;
+import software.aoc.day08.JunctionParser;
+import software.aoc.day08.Point3D;
+import software.aoc.day08.b.PlaygroundCompleter;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class Day08BTest {
 
     @Test
-    public void solveDay08PartB() throws IOException {
-        Path path = Paths.get("src/test/resources/day08-b/input.txt");
-        List<String> lines = Files.readAllLines(path);
+    public void solveDay08PartB() throws Exception {
+        var resource = getClass().getClassLoader().getResource("day08-a/input.txt");
+        if (resource == null) throw new RuntimeException("Archivo no encontrado");
 
-        CircuitManager manager = new CircuitManager();
-        long result = manager.findLastConnectionScore(lines);
+        List<String> lines = Files.readAllLines(Path.of(resource.toURI()));
+
+        JunctionParser parser = new JunctionParser();
+        List<Point3D> points = parser.parse(lines);
+
+        PlaygroundCompleter completer = new PlaygroundCompleter();
+        long result = completer.calculateLastConnectionXProduct(points);
 
         System.out.println("***********************************");
-        System.out.println("SOLUCION DAY 8 - PART B: " + result);
+        System.out.println("SOLUCIÓN DAY 8 - PART B: " + result);
         System.out.println("***********************************");
 
-        assertTrue(result > 0);
+        assertEquals(8135565324L, result, "El producto de las coordenadas X no es correcto.");
     }
 }

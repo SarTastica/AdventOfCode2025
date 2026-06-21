@@ -1,30 +1,35 @@
 package test;
 
 import org.junit.jupiter.api.Test;
-import software.aoc.day08.a.CircuitManager;
+import software.aoc.day08.JunctionParser;
+import software.aoc.day08.Point3D;
+import software.aoc.day08.a.PlaygroundOptimizer;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class Day08ATest {
 
     @Test
-    public void solveDay08PartA() throws IOException {
-        Path path = Paths.get("src/test/resources/day08-a/input.txt");
-        List<String> lines = Files.readAllLines(path);
+    public void solveDay08PartA() throws Exception {
+        var resource = getClass().getClassLoader().getResource("day08-a/input.txt");
+        if (resource == null) throw new RuntimeException("Archivo no encontrado");
 
-        CircuitManager manager = new CircuitManager();
-        long result = manager.calculateCircuitScore(lines);
+        List<String> lines = Files.readAllLines(Path.of(resource.toURI()));
+
+        JunctionParser parser = new JunctionParser();
+        List<Point3D> points = parser.parse(lines);
+
+        PlaygroundOptimizer optimizer = new PlaygroundOptimizer();
+        long result = optimizer.calculateLargestCircuitsMetric(points, 1000);
 
         System.out.println("***********************************");
-        System.out.println("SOLUCION DAY 8 - PART A: " + result);
+        System.out.println("SOLUCIÓN DAY 8 - PART A: " + result);
         System.out.println("***********************************");
 
-        assertTrue(result > 0);
+        assertEquals(122430L, result);
     }
 }
