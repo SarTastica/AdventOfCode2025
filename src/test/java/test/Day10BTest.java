@@ -1,11 +1,11 @@
 package test;
 
 import org.junit.jupiter.api.Test;
+import software.aoc.day10.FactoryManager;
 import software.aoc.day10.FactoryParser;
 import software.aoc.day10.Machine;
-import software.aoc.day10.b.JoltageManager;
-import software.aoc.day10.b.JoltageOptimizationStrategy;
-import software.aoc.day10.b.MemoizedBfsJoltageOptimizer; // NUEVO IMPORT
+import software.aoc.day10.MachineSolver;
+import software.aoc.day10.b.JoltageOptimizer;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,10 +25,11 @@ public class Day10BTest {
         FactoryParser parser = new FactoryParser();
         List<Machine> machines = parser.parse(lines);
 
-        JoltageOptimizationStrategy strategy = new MemoizedBfsJoltageOptimizer();
-        JoltageManager manager = new JoltageManager(strategy);
+        MachineSolver strategy = new JoltageOptimizer();
 
-        long result = manager.calculateTotalPresses(machines);
+        FactoryManager manager = new FactoryManager(strategy);
+
+        long result = manager.processAll(machines);
 
         System.out.println("***********************************");
         System.out.println("SOLUCIÓN DAY 10 - PART B: " + result);

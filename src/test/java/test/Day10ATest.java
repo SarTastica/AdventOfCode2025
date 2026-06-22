@@ -3,8 +3,8 @@ package test;
 import org.junit.jupiter.api.Test;
 import software.aoc.day10.FactoryManager;
 import software.aoc.day10.FactoryParser;
-import software.aoc.day10.InitializationStrategy;
 import software.aoc.day10.Machine;
+import software.aoc.day10.MachineSolver; // Importamos el nuevo contrato
 import software.aoc.day10.a.BfsInitializationOptimizer;
 
 import java.nio.file.Files;
@@ -24,11 +24,11 @@ public class Day10ATest {
 
         FactoryParser parser = new FactoryParser();
         List<Machine> machines = parser.parse(lines);
+        MachineSolver strategy = new BfsInitializationOptimizer();
 
-        InitializationStrategy strategy = new BfsInitializationOptimizer();
         FactoryManager manager = new FactoryManager(strategy);
 
-        long result = manager.calculateTotalPresses(machines);
+        long result = manager.processAll(machines);
 
         System.out.println("***********************************");
         System.out.println("SOLUCIÓN DAY 10 - PART A: " + result);

@@ -3,17 +3,15 @@ package software.aoc.day10;
 import java.util.List;
 
 public class FactoryManager {
-    private final InitializationStrategy strategy;
+    private final MachineSolver solver;
 
-    public FactoryManager(InitializationStrategy strategy) {
-        this.strategy = strategy;
+    public FactoryManager(MachineSolver solver) {
+        this.solver = solver;
     }
 
-    public long calculateTotalPresses(List<Machine> machines) {
-        long total = 0;
-        for (Machine machine : machines) {
-            total += strategy.calculateMinimumPresses(machine);
-        }
-        return total;
+    public long processAll(List<Machine> machines) {
+        return machines.stream()
+                .mapToLong(solver::solve)
+                .sum();
     }
 }
