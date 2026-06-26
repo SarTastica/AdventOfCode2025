@@ -6,36 +6,44 @@ import java.util.OptionalInt;
 import java.util.List;
 
 public class MemoizedMachineSolver implements MachineSolver {
-    private Map<JoltageState, OptionalInt> knownStates;
-    private List<JoltageEffect> availableEffects;
 
     @Override
     public int solve(Machine machine) {
-        this.knownStates = new HashMap<>();
-        this.availableEffects = JoltageEffect.allFrom(machine.buttons(), machine.targetJoltage().size());
+        Map<JoltageState, OptionalInt> knownStates = new HashMap<>();
+        List<JoltageEffect> availableEffects = JoltageEffect.allFrom(
+                machine.buttons(),
+                machine.targetJoltage().size()
+        );
 
-        return configureJoltage(machine.targetJoltage()).orElse(0);
+        return configureJoltage(machine.targetJoltage(), knownStates, availableEffects).orElse(0);
     }
 
-    private OptionalInt configureJoltage(JoltageState joltageState) {
-        if (joltageState.isSolved()) return OptionalInt.of(0);
-        if (knownStates.containsKey(joltageState)) return knownStates.get(joltageState);
+    private OptionalInt configureJoltage(JoltageState state,
+                                         Map<JoltageState, OptionalInt> memo,
+                                         List<JoltageEffect> effects) {
+        if (state.isSolved()) return OptionalInt.of(0);
+        if (memo.containsKey(state)) return memo.get(state);
 
-        OptionalInt result = calculateMinPresses(joltageState);
-        knownStates.put(joltageState, result);
+        OptionalInt result = calculateMinPresses(state, memo, effects);
+        memo.put(state, result);
         return result;
     }
 
-    private OptionalInt calculateMinPresses(JoltageState joltageState) {
-        return availableEffects.stream()
-                .filter(joltageState::canApply)
-                .map(effect -> nextStateWith(joltageState, effect))
+    private OptionalInt calculateMinPresses(JoltageState state,
+                                            Map<JoltageState, OptionalInt> memo,
+                                            List<JoltageEffect> effects) {
+        return effects.stream()
+                .filter(state::canApply)
+                .map(effect -> nextStateWith(state, effect, memo, effects))
                 .flatMapToInt(OptionalInt::stream)
                 .min();
     }
 
-    private OptionalInt nextStateWith(JoltageState joltageState, JoltageEffect effect) {
-        return configureJoltage(joltageState.nextState(effect)).stream()
+    private OptionalInt nextStateWith(JoltageState state,
+                                      JoltageEffect effect,
+                                      Map<JoltageState, OptionalInt> memo,
+                                      List<JoltageEffect> effects) {
+        return configureJoltage(state.nextState(effect), memo, effects).stream()
                 .map(subResult -> effect.buttonPressCount() + 2 * subResult)
                 .findFirst();
     }

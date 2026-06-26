@@ -23,13 +23,11 @@ public class MemoizedDfsPathCounter implements PathCounterStrategy {
         }
 
         long totalPaths = 0;
-
         for (String neighbor : graph.getNeighbors(current)) {
             totalPaths += dfs(graph, neighbor, target, memo);
         }
 
         memo.put(current, totalPaths);
-
         return totalPaths;
     }
 }

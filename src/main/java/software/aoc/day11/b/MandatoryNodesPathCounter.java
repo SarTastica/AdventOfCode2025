@@ -15,12 +15,12 @@ public class MandatoryNodesPathCounter implements PathCounterStrategy {
         this.required1 = required1;
         this.required2 = required2;
     }
+
     private record State(String node, boolean seenReq1, boolean seenReq2) {}
 
     @Override
     public long countPaths(NetworkGraph graph, String startNode, String targetNode) {
-        Map<State, Long> memo = new HashMap<>();
-        return dfs(graph, startNode, targetNode, false, false, memo);
+        return dfs(graph, startNode, targetNode, false, false, new HashMap<>());
     }
 
     private long dfs(NetworkGraph graph, String current, String target, boolean seen1, boolean seen2, Map<State, Long> memo) {

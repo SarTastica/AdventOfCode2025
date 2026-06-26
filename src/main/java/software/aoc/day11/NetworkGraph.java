@@ -9,6 +9,7 @@ public class NetworkGraph {
     public NetworkGraph(Map<String, List<String>> adjacencyList) {
         this.adjacencyList = Map.copyOf(adjacencyList);
     }
+
     public List<String> getNeighbors(String nodeId) {
         return adjacencyList.getOrDefault(nodeId, List.of());
     }
