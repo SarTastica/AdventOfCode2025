@@ -1,12 +1,14 @@
 package software.aoc.day07.b;
 
 import software.aoc.day07.Manifold;
+import software.aoc.day07.TachyonCell;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class QuantumTachyonSimulator {
     private final Manifold manifold;
+
     public QuantumTachyonSimulator(Manifold manifold) {
         this.manifold = manifold;
     }
@@ -23,9 +25,9 @@ public class QuantumTachyonSimulator {
                 int col = entry.getKey();
                 long pathCount = entry.getValue();
 
-                char cell = manifold.getCharAt(r, col);
+                TachyonCell cell = manifold.getCellAt(r, col);
 
-                if (cell == '^') {
+                if (cell == TachyonCell.SPLITTER) {
                     nextTimelines.merge(col - 1, pathCount, Long::sum);
                     nextTimelines.merge(col + 1, pathCount, Long::sum);
                 } else {

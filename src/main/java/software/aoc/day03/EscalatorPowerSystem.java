@@ -12,7 +12,8 @@ public class EscalatorPowerSystem {
     public long calculateTotalJoltage(Stream<String> batteryBanks) {
         return batteryBanks
                 .filter(bank -> !bank.isBlank())
-                .mapToLong(this.calculator::calculate)
+                .map(BatteryBank::new)
+                .mapToLong(calculator::calculate)
                 .sum();
     }
 }

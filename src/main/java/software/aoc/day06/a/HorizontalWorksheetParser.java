@@ -1,23 +1,22 @@
-package software.aoc.day06;
+package software.aoc.day06.a;
 
+import software.aoc.day06.MathProblem;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WorksheetParser {
+public class HorizontalWorksheetParser {
 
     public List<MathProblem> parse(List<String> lines) {
         List<MathProblem> problems = new ArrayList<>();
-
         int maxLen = lines.stream().mapToInt(String::length).max().orElse(0);
+
         List<String> paddedLines = lines.stream()
                 .map(line -> String.format("%-" + maxLen + "s", line))
                 .toList();
 
         int startCol = -1;
-
         for (int c = 0; c <= maxLen; c++) {
             boolean isBlankColumn = true;
-
             if (c < maxLen) {
                 for (String line : paddedLines) {
                     if (line.charAt(c) != ' ') {

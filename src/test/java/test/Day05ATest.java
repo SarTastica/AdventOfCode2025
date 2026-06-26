@@ -22,10 +22,10 @@ public class Day05ATest {
 
         InventoryParser.ParsedData data = InventoryParser.parse(lines);
 
-        MergedIntervalRule rule = new MergedIntervalRule(data.ranges);
+        MergedIntervalRule rule = new MergedIntervalRule(data.ranges());
         CafeteriaManager manager = new CafeteriaManager(rule);
 
-        long result = manager.countFreshIngredients(data.availableIds);
+        long result = manager.countFreshIngredients(data.availableIds());
 
         System.out.println("***********************************");
         System.out.println("SOLUCIÓN DAY 5 - PART A: " + result);

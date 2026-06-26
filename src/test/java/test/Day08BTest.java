@@ -1,8 +1,8 @@
 package test;
 
 import org.junit.jupiter.api.Test;
-import software.aoc.day08.JunctionParser;
 import software.aoc.day08.Point3D;
+import software.aoc.day08.JunctionParser;
 import software.aoc.day08.b.PlaygroundCompleter;
 
 import java.nio.file.Files;

@@ -3,7 +3,7 @@ package test;
 import org.junit.jupiter.api.Test;
 import software.aoc.day04.AccessibilityRule;
 import software.aoc.day04.Grid;
-import software.aoc.day04.a.FewerThanFourRule;
+import software.aoc.day04.FewerThanFourRule;
 import software.aoc.day04.b.IterativeForkliftOptimizer;
 
 import java.nio.file.Files;

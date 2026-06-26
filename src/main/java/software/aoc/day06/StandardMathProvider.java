@@ -1,7 +1,4 @@
-package software.aoc.day06.a;
-
-import software.aoc.day06.OperationStrategy;
-import software.aoc.day06.StrategyProvider;
+package software.aoc.day06;
 
 public class StandardMathProvider implements StrategyProvider {
     @Override
@@ -9,7 +6,7 @@ public class StandardMathProvider implements StrategyProvider {
         return switch (symbol) {
             case '+' -> new AdditionStrategy();
             case '*' -> new MultiplicationStrategy();
-            default -> throw new IllegalArgumentException("Operador no soportado en Parte A: " + symbol);
+            default -> throw new IllegalArgumentException("Operador no soportado: " + symbol);
         };
     }
 }

@@ -1,6 +1,4 @@
-package software.aoc.day06.a;
-
-import software.aoc.day06.OperationStrategy;
+package software.aoc.day06;
 import java.util.List;
 
 public class AdditionStrategy implements OperationStrategy {

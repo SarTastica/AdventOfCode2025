@@ -1,40 +1,34 @@
 package software.aoc.day01.b;
 
-import software.aoc.day01.CajaFuerte;
+import java.util.List;
 
-public class Dial implements CajaFuerte {
-    private int currentPosition;
-    private int zeroHits;
+public record Dial(int currentPosition, int zeroHits) {
     private static final int MAX_POSITIONS = 100;
     private static final int START_POSITION = 50;
 
     public Dial() {
-        this.currentPosition = START_POSITION;
-        this.zeroHits = 0;
+        this(START_POSITION, 0);
     }
 
-    @Override
-    public void rotateLeft(int amount) {
-        applyRotation(amount, -1);
+    public Dial executeAll(List<String> orders) {
+        Dial current = this;
+        for (String order : orders) {
+            current = current.execute(Rotation.from(order));
+        }
+        return current;
     }
 
-    @Override
-    public void rotateRight(int amount) {
-        applyRotation(amount, 1);
-    }
+    private Dial execute(Rotation rotation) {
+        int tempPosition = this.currentPosition;
+        int hitsInThisMove = 0;
 
-    private void applyRotation(int amount, int direction) {
-        for (int i = 0; i < amount; i++) {
-            this.currentPosition = Math.floorMod(this.currentPosition + direction, MAX_POSITIONS);
-
-            if (this.currentPosition == 0) {
-                this.zeroHits++;
+        for (int i = 0; i < rotation.amount(); i++) {
+            tempPosition = Math.floorMod(tempPosition + rotation.direction(), MAX_POSITIONS);
+            if (tempPosition == 0) {
+                hitsInThisMove++;
             }
         }
-    }
 
-    @Override
-    public int getZeroHits() {
-        return zeroHits;
+        return new Dial(tempPosition, this.zeroHits + hitsInThisMove);
     }
 }

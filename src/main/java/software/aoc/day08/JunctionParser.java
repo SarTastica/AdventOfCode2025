@@ -8,7 +8,12 @@ public class JunctionParser {
         List<Point3D> points = new ArrayList<>();
         for (int i = 0; i < lines.size(); i++) {
             String[] parts = lines.get(i).split(",");
-            points.add(new Point3D(i, Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[2])));
+            points.add(new Point3D(
+                    i,
+                    Long.parseLong(parts[0].trim()),
+                    Long.parseLong(parts[1].trim()),
+                    Long.parseLong(parts[2].trim())
+            ));
         }
         return points;
     }

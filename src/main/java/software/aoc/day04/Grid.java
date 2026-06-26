@@ -1,6 +1,8 @@
 package software.aoc.day04;
 
 import java.util.List;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class Grid {
     private final char[][] map;
@@ -17,19 +19,35 @@ public class Grid {
         }
     }
 
-    public int getRows() { return rows; }
-    public int getCols() { return cols; }
-    public char getCharAt(int row, int col) {
-        if (row < 0 || row >= rows || col < 0 || col >= cols) {
-            return '.';
-        }
-        return map[row][col];
+    private Grid(char[][] map, int rows, int cols) {
+        this.map = map;
+        this.rows = rows;
+        this.cols = cols;
     }
 
-    //para la parte b
-    public void setCharAt(int row, int col, char c) {
-        if (row >= 0 && row < rows && col >= 0 && col < cols) {
-            map[row][col] = c;
+    public char getCharAt(Position p) {
+        if (p.row() < 0 || p.row() >= rows || p.col() < 0 || p.col() >= cols) {
+            return '.';
         }
+        return map[p.row()][p.col()];
+    }
+
+    public Stream<Position> getRollPositions() {
+        return IntStream.range(0, rows).boxed()
+                .flatMap(r -> IntStream.range(0, cols).mapToObj(c -> new Position(r, c)))
+                .filter(p -> getCharAt(p) == '@');
+    }
+
+    public Grid removeRolls(List<Position> rollsToRemove) {
+        char[][] newMap = new char[rows][cols];
+        for (int r = 0; r < rows; r++) {
+            System.arraycopy(this.map[r], 0, newMap[r], 0, cols);
+        }
+
+        for (Position p : rollsToRemove) {
+            newMap[p.row()][p.col()] = '.';
+        }
+
+        return new Grid(newMap, rows, cols);
     }
 }

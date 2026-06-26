@@ -4,11 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class InventoryParser {
-    public static class ParsedData {
-        public final List<Range> ranges;
-        public final List<Long> availableIds;
-        public ParsedData(List<Range> r, List<Long> i) { this.ranges = r; this.availableIds = i; }
-    }
+
+    public record ParsedData(List<Range> ranges, List<Long> availableIds) {}
 
     public static ParsedData parse(List<String> lines) {
         List<Range> ranges = new ArrayList<>();

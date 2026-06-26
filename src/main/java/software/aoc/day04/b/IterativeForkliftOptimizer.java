@@ -2,8 +2,8 @@ package software.aoc.day04.b;
 
 import software.aoc.day04.AccessibilityRule;
 import software.aoc.day04.Grid;
+import software.aoc.day04.Position;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class IterativeForkliftOptimizer {
@@ -13,30 +13,22 @@ public class IterativeForkliftOptimizer {
         this.rule = rule;
     }
 
-    public long simulateRemovalProcess(Grid grid) {
+    public long simulateRemovalProcess(Grid initialGrid) {
         long totalRemoved = 0;
+        Grid currentGrid = initialGrid;
 
         while (true) {
-            List<int[]> rollsToRemove = new ArrayList<>();
+            final Grid snapshotGrid = currentGrid;
 
-            for (int r = 0; r < grid.getRows(); r++) {
-                for (int c = 0; c < grid.getCols(); c++) {
-                    if (grid.getCharAt(r, c) == '@') {
-                        if (rule.isAccessible(grid, r, c)) {
-                            rollsToRemove.add(new int[]{r, c});
-                        }
-                    }
-                }
-            }
+            List<Position> rollsToRemove = snapshotGrid.getRollPositions()
+                    .filter(p -> rule.isAccessible(snapshotGrid, p))
+                    .toList();
 
             if (rollsToRemove.isEmpty()) {
                 break;
             }
 
-            for (int[] coord : rollsToRemove) {
-                grid.setCharAt(coord[0], coord[1], '.');
-            }
-
+            currentGrid = snapshotGrid.removeRolls(rollsToRemove);
             totalRemoved += rollsToRemove.size();
         }
 

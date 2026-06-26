@@ -1,6 +1,7 @@
 package software.aoc.day07.a;
 
 import software.aoc.day07.Manifold;
+import software.aoc.day07.TachyonCell;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -22,9 +23,9 @@ public class TachyonSimulator {
             Set<Integer> nextBeams = new HashSet<>();
 
             for (int col : activeBeams) {
-                char cell = manifold.getCharAt(r, col);
+                TachyonCell cell = manifold.getCellAt(r, col);
 
-                if (cell == '^') {
+                if (cell == TachyonCell.SPLITTER) {
                     splitCount++;
                     nextBeams.add(col - 1);
                     nextBeams.add(col + 1);

@@ -1,16 +1,10 @@
 package software.aoc.day05;
 
-public class Range implements Comparable<Range> {
-    private final long start;
-    private final long end;
+public record Range(long start, long end) implements Comparable<Range> {
 
-    public Range(long start, long end) {
-        this.start = start;
-        this.end = end;
+    public long size() {
+        return end - start + 1;
     }
-
-    public long getStart() { return start; }
-    public long getEnd() { return end; }
 
     @Override
     public int compareTo(Range other) {

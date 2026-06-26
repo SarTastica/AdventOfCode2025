@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import software.aoc.day06.CephalopodCalculator;
 import software.aoc.day06.MathProblem;
 import software.aoc.day06.StrategyProvider;
-import software.aoc.day06.a.StandardMathProvider;
+import software.aoc.day06.StandardMathProvider;
 import software.aoc.day06.b.VerticalWorksheetParser;
 
 import java.nio.file.Files;
@@ -33,7 +33,6 @@ public class Day06BTest {
         System.out.println("***********************************");
         System.out.println("SOLUCIÓN DAY 6 - PART B: " + result);
         System.out.println("***********************************");
-
 
         assertEquals(8811937976367L, result, "El total no coincide con el resultado esperado.");
     }

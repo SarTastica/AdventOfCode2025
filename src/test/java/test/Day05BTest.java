@@ -22,7 +22,8 @@ public class Day05BTest {
         InventoryParser.ParsedData data = InventoryParser.parse(lines);
 
         TotalFreshnessCalculator calculator = new TotalFreshnessCalculator();
-        long result = calculator.calculateTotalFresh(data.ranges);
+
+        long result = calculator.calculateTotalFresh(data.ranges());
 
         System.out.println("***********************************");
         System.out.println("SOLUCIÓN DAY 5 - PART B: " + result);

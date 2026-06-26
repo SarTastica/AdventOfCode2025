@@ -3,9 +3,9 @@ package test;
 import org.junit.jupiter.api.Test;
 import software.aoc.day06.CephalopodCalculator;
 import software.aoc.day06.MathProblem;
-import software.aoc.day06.WorksheetParser;
 import software.aoc.day06.StrategyProvider;
-import software.aoc.day06.a.StandardMathProvider;
+import software.aoc.day06.StandardMathProvider;
+import software.aoc.day06.a.HorizontalWorksheetParser;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,7 +22,7 @@ public class Day06ATest {
 
         List<String> lines = Files.readAllLines(Path.of(resource.toURI()));
 
-        WorksheetParser parser = new WorksheetParser();
+        HorizontalWorksheetParser parser = new HorizontalWorksheetParser();
         List<MathProblem> problems = parser.parse(lines);
 
         StrategyProvider mathProvider = new StandardMathProvider();

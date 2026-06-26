@@ -1,10 +1,10 @@
 package test;
 
 import org.junit.jupiter.api.Test;
-import software.aoc.day04.ForkliftOptimizer;
 import software.aoc.day04.Grid;
 import software.aoc.day04.AccessibilityRule;
-import software.aoc.day04.a.FewerThanFourRule;
+import software.aoc.day04.FewerThanFourRule;
+import software.aoc.day04.a.ForkliftOptimizer;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

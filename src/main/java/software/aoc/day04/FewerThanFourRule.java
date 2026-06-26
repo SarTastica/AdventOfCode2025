@@ -1,7 +1,4 @@
-package software.aoc.day04.a;
-
-import software.aoc.day04.AccessibilityRule;
-import software.aoc.day04.Grid;
+package software.aoc.day04;
 
 public class FewerThanFourRule implements AccessibilityRule {
 
@@ -12,14 +9,12 @@ public class FewerThanFourRule implements AccessibilityRule {
     };
 
     @Override
-    public boolean isAccessible(Grid grid, int row, int col) {
+    public boolean isAccessible(Grid grid, Position pos) {
         int adjacentRolls = 0;
 
         for (int[] dir : DIRECTIONS) {
-            int newRow = row + dir[0];
-            int newCol = col + dir[1];
-
-            if (grid.getCharAt(newRow, newCol) == '@') {
+            Position neighbor = new Position(pos.row() + dir[0], pos.col() + dir[1]);
+            if (grid.getCharAt(neighbor) == '@') {
                 adjacentRolls++;
             }
         }

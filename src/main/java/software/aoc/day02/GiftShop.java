@@ -10,27 +10,10 @@ public class GiftShop {
     }
 
     public long calculateInvalidIdSum(String input) {
-        String cleanInput = input.replaceAll("[^0-9,-]", "");
-        String[] ranges = cleanInput.split(",");
-
-        return Arrays.stream(ranges)
-                .filter(r -> r.contains("-"))
-                .mapToLong(range -> {
-                    String[] bounds = range.split("-");
-                    long start = Long.parseLong(bounds[0]);
-                    long end = Long.parseLong(bounds[1]);
-                    return sumInvalidInRange(start, end);
-                })
+        return Arrays.stream(input.split(","))
+                .map(Range::from)
+                .flatMapToLong(Range::stream)
+                .filter(rule::isInvalid)
                 .sum();
-    }
-
-    private long sumInvalidInRange(long start, long end) {
-        long sum = 0;
-        for (long i = start; i <= end; i++) {
-            if (this.rule.isInvalid(i)) {
-                sum += i;
-            }
-        }
-        return sum;
     }
 }
