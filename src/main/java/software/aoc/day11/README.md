@@ -1,119 +1,63 @@
-# DÍA 11: Reactor
+---
+title: "Advent of Code - Día 11: La Red de Reactores"
+author: "Salwa Madani Lazaar"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    theme: flatly
+    highlight: tango
+---
 
-## 1. Resumen del Enunciado
+# Día 11: La Red de Reactores (Grafos y Memoización)
 
-Nos encontramos en el núcleo de la fábrica, donde un reactor toroidal tiene problemas de comunicación con un rack de servidores. El sistema se modela como una red de dispositivos conectados por cables unidireccionales. El objetivo es analizar el flujo de datos a través de esta red.
+## Descripción del Problema
+En el Día 11 analizamos el flujo de datos a través de una red de reactores. El sistema está representado como un grafo dirigido. En la **Parte A**, el objetivo es contar cuántos caminos únicos y válidos existen desde un nodo de inicio hasta un nodo destino. En la **Parte B**, el nivel de exigencia sube: debemos contar únicamente aquellos caminos que pasen obligatoriamente por dos nodos críticos específicos antes de llegar a su destino, obligándonos a rastrear el estado del viaje durante la travesía.
 
-**Entrada:**
-Una lista de conexiones que define la topología de la red (formato de Lista de Adyacencia):
-`origen: destino1 destino2 ...`
-Ejemplo: `bbb: ddd eee` (El dispositivo `bbb` envía datos a `ddd` y `eee`).
+---
 
-**Parte A:**
-Calcular el número total de **caminos únicos** que existen desde un punto de inicio (`you`) hasta la salida principal (`out`).
+## 1. Patrones de Diseño
 
-**Parte B:**
-El problema añade restricciones de paso obligatorio. Calcular cuántos caminos desde el servidor (`svr`) hasta la salida (`out`) pasan obligatoriamente por dos componentes específicos: el conversor (`dac`) y la transformada de Fourier (`fft`), sin importar el orden en que se visiten.
+### Patrón Iterator (Uso Implícito)
+A la hora de explorar el grafo, hacemos un uso implícito del patrón Iterator mediante los bucles `for-each` de Java (`for (String neighbor : graph.getNeighbors(current))`).
+Este patrón proporciona una manera de acceder secuencialmente a los elementos de un objeto agregado sin exponer su representación subyacente[cite: 52]. Su uso separa la lógica de iteración (recorrer los vecinos) de las estructuras de datos (la lista interna), mejorando así la modularidad del código[cite: 54].
 
-***
+---
 
-## 2. Arquitectura
+## 2. Inyecciones y Acoplamiento
 
-He modelado el problema utilizando **Teoría de Grafos**.
-La clase `ReactorManager` engloba toda la lógica, manteniendo **Alta Cohesión** entre el parseo de los datos y los algoritmos de recorrido.
+### Inyección de Dependencias, DIP y COI
+La clase `ReactorManager` no contiene la lógica para explorar el grafo, sino que exige que se le inyecte el comportamiento a través de su constructor: `public ReactorManager(PathCounterStrategy strategy)`.
+* Esto respeta el **Principio de Inversión de Dependencias (DIP)**: los módulos de alto nivel no deben depender de módulos de bajo nivel, sino de abstracciones[cite: 36].
+* También aplica el **Principio de Composición sobre Herencia (COI)**: en lugar de heredar código de una clase base, se recomienda tener un objeto con esa funcionalidad como propiedad[cite: 37].
+* Finalmente, garantiza un **Bajo Acoplamiento**, al diseñar módulos o componentes que tienen pocas interdependencias[cite: 17].
 
-**Decisiones de Diseño:**
-1.  **Grafo Dirigido (Directed Graph):** Los datos fluyen en un solo sentido.
-2.  **Lista de Adyacencia:**
-3.  **Gestión de Estado:** 
+---
 
-***
+## 3. Principios de Diseño
 
-## 3. Parte A: DFS y Memoización
+### Principio de Responsabilidad Única (SRP)
+Cada módulo o clase debe tener una sola razón para cambiar, reflejando la alta cohesión[cite: 30].
+* **Dónde está en el código:** 1. `NetworkParser`: Su única responsabilidad es convertir las líneas de texto en un diccionario en memoria.
+    2. `NetworkGraph`: Su única responsabilidad es custodiar los datos topológicos.
+    3. `MemoizedDfsPathCounter`: Su única responsabilidad es aplicar el algoritmo matemático DFS.
 
-### 1. Estructuras de Datos y Modelado
+### Principio Abierto Cerrado (OCP)
+Las clases deben estar abiertas para la extensión, pero cerradas para la modificación[cite: 31, 32].
+* **Dónde está en el código:** Para resolver la Parte B (que requería una nueva regla de negocio para visitar nodos obligatorios), no se modificó ni una sola línea de `ReactorManager`. El motor se extendió pasándole la nueva clase `MandatoryNodesPathCounter`, manteniendo el sistema cerrado a modificaciones destructivas.
 
-Para representar la red de dispositivos, elegí un enfoque clásico de Teoría de Grafos.
+---
 
-El Código:
-```
-private final Map<String, List<String>> adjList = new HashMap<>();
-private final Map<String, Long> memo = new HashMap<>();
-```
-* Grafo Dirigido (adjList): El mapa me permite acceso O(1) para obtener los vecinos de cualquier nodo dado su nombre (String).
-* Caché (memo): Almacena NombreNodo -> NúmeroDeCaminos, permitiendo que el algoritmo recuerde lo que ya calculó
+## 4. Normas, Leyes y Fundamentos
 
-### 2. Método countPaths: Ingesta y Limpieza
+### Fundamento: Abstracción
+La abstracción consiste en ocultar los detalles complejos detrás de una interfaz simple[cite: 21].
+* **Dónde está en el código:** La clase `NetworkGraph` encapsula un complejo `Map<String, List<String>>`. En lugar de exponer este mapa para que el orquestador lidie con claves nulas o listas vacías, expone un método limpio: `getNeighbors(String nodeId)`. Si el nodo no existe, devuelve una lista vacía de forma segura (`List.of()`), ocultando esta protección interna.
 
-Este método actúa como el Constructor del Grafo y orquestador. Su responsabilidad es transformar texto crudo en una estructura navegable.
-```
-String[] parts = line.split(":");
-// ...
-String[] destinations = parts[1].trim().split("\\s+");
-adjList.put(source, Arrays.asList(destinations));
-```
+### Ley de Demeter
+Sugiere que una unidad de software debe tener un conocimiento limitado sobre otras unidades ("no aceptes caramelos de extraños")[cite: 38, 39].
+* **Dónde está en el código:** El algoritmo DFS no interactúa directamente con el diccionario interno de `NetworkGraph` (ej. `graph.adjacencyList.get(...)`). En su lugar, pide la información directamente a la entidad que conoce (`graph.getNeighbors(...)`), respetando los límites de conocimiento del objeto.
 
-* Primero divido por : para separar el nodo origen de sus conexiones.
-* Sanitización (\\s+): Al procesar los destinos, uso la expresión regular `\\s+` en lugar de un espacio simple " ". Esto hace el código robusto ante entradas "sucias". 
-
-Manejo de Nodos Hoja (Edge Cases)
-```
-} else {
-    adjList.put(source, new ArrayList<>());
-}
-```
-* Si un dispositivo aparece a la izquierda pero no tiene conexiones a la derecha (es un callejón sin salida), lo añado al mapa con una lista vacía. Esto simplifica enormemente el DFS posterior: no tengo que comprobar si adjList.get(nodo) es null, solo itero sobre una lista vacía y el bucle termina naturalmente.
-
-Gestión de Estado (Idempotencia)
-```
-memo.clear();
-return dfs("you");
-```
-* La llamada a `memo.clear()` es crítica. Dado que memo es un campo de instancia, debo limpiarlo antes de cada ejecución. Esto garantiza que el objeto ReactorManager sea reutilizable y que cálculos de tests anteriores no corrompan el resultado actual.
-
-
-### DFS
-Este método dfs resuelve el problema utilizando Programación Dinámica. 
-* Defino un caso base: llegar a 'out' cuenta como 1 camino.
-* Para cualquier otro nodo, el número de caminos es la suma recursiva de los caminos de sus vecinos.
-* El grafo tiene muchas rutas que convergen. Al almacenar el resultado de cada nodo en el mapa memo la primera vez que lo visito, transformo una complejidad exponencial en una lineal respecto al número de aristas y vértices
-
-***
-
-## 4. Parte B: Descomposición Combinatoria
-
-### 1. Método countPathsViaComponents: Estrategia y Topología
-
-En la Parte B, el requisito cambia: debemos pasar obligatoriamente por dos nodos intermedios (dac y fft). En lugar de complicar el DFS con estados extra, apliqué una Descomposición Topológica.
-
-* Análisis de Permutaciones:
-```
-long path1 = calculateSequentialPath("svr", "dac", "fft", "out");
-long path2 = calculateSequentialPath("svr", "fft", "dac", "out");
-```
-> Dado que el grafo es dirigido, solo existen dos secuencias lógicas posibles para visitar los componentes. Calculo ambas rutas independientemente y las sumo (path1 + path2) para cubrir todo el espacio de soluciones.
-
-### 2. Método calculateSequentialPath: Divide y Vencerás 
-
-Para resolver cada permutación, utilicé la estrategia de Divide y Vencerás, fragmentando el problema en 3 tramos independientes (Legs).
-* `return leg1 * leg2 * leg3;`
-> Si hay N formas de hacer el tramo 1 y M formas de hacer el tramo 2, el total es NxM. Esto es computacionalmente mucho más eficiente que simular la ruta completa de una sola vez.
-
-* Optimización: `if (leg1 == 0) return 0;`
-> Aplico una Cláusula de Guarda. Si el primer tramo es imposible (0 caminos), corto la ejecución inmediatamente.
-
-### 3. Adaptación del Motor dfs y Gestión de Memoria
-
-Finalmente, tuve que refactorizar el motor de búsqueda para hacerlo reutilizable.
-
-* Invalidación de Caché (Cache Invalidation):
-```
-private long countPaths(String start, String end) {
-    memo.clear(); // CRÍTICO
-    return dfs(start, end);
-}
-```
-
-> Ees obligatorio limpiar la caché `memo.clear()` entre llamadas. Si no lo hiciera, el tramo 2 reutilizaría cálculos 'sucios' del tramo 1 apuntando al destino equivocado.
-
-
+### Fundamentos: Alta Cohesión y Código Expresivo
+En la Parte B, necesitamos memorizar tres variables a la vez para saber si ya hemos evaluado un camino: el nodo actual, si vimos el requisito 1 y si vimos el requisito 2.
+* **Dónde está en el código:** En lugar de concatenar cadenas confusas (ej. `current + "_" + seen1 + "_" + seen2`), creamos un `record State(String node, boolean seenReq1, boolean seenReq2)`. Esto promueve la **Alta Cohesión** (partes estrechamente relacionadas enfocadas en una única tarea) [cite: 16] y logra un **Código Expresivo** que debería ser claro y comprensible, facilitando la lectura y el mantenimiento[cite: 20]. 

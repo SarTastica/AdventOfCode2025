@@ -1,113 +1,61 @@
-# DÍA 8: Parque Infantil (Playground Circuits)
+---
+title: "Advent of Code - Día 8: Conectando Nodos"
+author: "Salwa Madani Lazaar"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    theme: flatly
+    highlight: tango
+---
 
-## 1. Explicación del Enunciado
+# Día 8: Conectando Nodos (Optimización de Grafos)
 
-Aterrizamos en un parque subterráneo donde debemos conectar cajas de conexiones eléctricas distribuidas en un espacio 3D.
-
-**La Entrada:**
-Una lista de coordenadas X, Y, Z (ej: `162,817,812`) que representan la posición física de las cajas.
-
-**Los Objetivos:**
-* **Parte A (Clustering):** Conectar los pares de cajas más cercanos entre sí (limitado a 1000 conexiones) y analizar el tamaño de los circuitos aislados resultantes.
-* **Parte B (Conectividad Total):** Seguir conectando las cajas más cercanas hasta que **todas** formen parte de un único circuito gigante. El objetivo es identificar la conexión crítica que unifica todo el sistema.
+## Descripción del Problema
+En el Día 8 nos enfrentamos a un problema espacial en 3D. Recibimos una lista de coordenadas (nodos o cruces) y debemos conectarlos mediante cables. Para optimizar recursos, siempre se priorizan las conexiones más cortas. En la **Parte A**, simulamos la conexión de un número limitado de cables y calculamos una métrica basada en los circuitos resultantes. En la **Parte B**, conectamos iterativamente hasta que todo el sistema forma una red ininterrumpida, identificando la última conexión crítica.
 
 ---
 
-## 2. Arquitectura: Cohesión y Clases Internas
+## 1. Patrones de Diseño
 
-He separado la geometría de la lógica de grafos para respetar el principio **SRP** (Responsabilidad Única).
-
-**1. Point3D (Value Object):**
-Clase inmutable encargada exclusivamente de guardar coordenadas y calcular la distancia euclídea (`Math.sqrt`).
-
-**2. CircuitManager (Lógica de Grafos):**
-Encargada del algoritmo de conexión.
-
-**3. Connection (Clase Interna Estática):**
-Modelé la conexión (punto A, punto B, distancia) como una `private static class`.
-
-* Una conexión es un dato puro que no necesita acceder al estado del `CircuitManager`. Al hacerla estática y `Comparable`, facilito su ordenación (`Collections.sort`) y optimizo la memoria.
+### Patrón Iterator (Uso Implícito)
+En este día, trabajamos intensamente con colecciones de datos, como la lista de conexiones (`List<Connection>`). Utilizamos el **Patrón Iterator** de manera implícita mediante el bucle `for-each` de Java (`for (Connection conn : connections)`).
+Este patrón proporciona una manera de acceder secuencialmente a los elementos de un objeto agregado sin exponer su representación subyacente[cite: 52]. Al usarlo, separamos la lógica de iteración de las estructuras de datos, mejorando así la modularidad del código y permitiendo recorrer conjuntos de manera eficiente y uniforme[cite: 53, 54].
 
 ---
 
-## 3. Parte A: Union-Find (Conjuntos Disjuntos)
+## 2. Inyecciones y Acoplamiento
 
-### El Algoritmo
-Para gestionar las conexiones entre las cajas, he implementado un algoritmo llamado Union-Find.
+### Inyección de Datos y Bajo Acoplamiento
+En las clases orquestadoras (`PlaygroundOptimizer` y `PlaygroundCompleter`), evitamos que estas instancien directamente al `JunctionParser` para obtener los datos. En su lugar, la lista de puntos (`List<Point3D>`) se inyecta directamente a través de los parámetros del método `calculateLastConnectionXProduct(List<Point3D> junctions)`.
+Esto apoya directamente el fundamento de **Bajo Acoplamiento**, promoviendo la idea de diseñar módulos o componentes que tienen pocas interdependencias[cite: 17].
 
-* El Concepto del 'Jefe Supremo': Al principio, cada caja es su propio jefe `parent[i] == i`. Nadie está conectado con nadie. Pero cuando conecto dos cajas, una pasa a ser 'subordinada' de la otra.
-* El Método find: Este método es recursivo. Si le pregunto a la caja 5 '¿quién es tu líder?', ella mira a su padre. Si su padre tiene otro padre, sigue subiendo hasta encontrar al Líder Supremo. Una vez que encuentro al líder supremo, hago que todas las cajas intermedias reporten directamente a él. Así, la próxima vez que pregunte, la respuesta es instantánea.
-* El Método union: Cuando conecto la caja A y la caja B, busco al líder supremo de A (rootA) y al líder supremo de B (rootB). Si son líderes diferentes, hago que uno se convierta en jefe del otro `parent[rootA] = rootB`.
-
-
-### Método calculateCircuitScore
-
-Este método osquesta todo:
-* Utilizo un Stream para mapear cada línea de texto a una nueva instancia de la clase Point3D y recolecto todos esos objetos en una lista. También guardo n, que es la cantidad total de puntos
-* Genera todas las conexiones
-* `for (int i = 0; i < n; i++) {
-    for (int j = i + 1; j < n; j++) {
-        // Calcula distancia entre TODOS los pares posibles
-        allConnections.add(new Connection(i, j, dist));
-    }
-}` 
-
-
-* Se ordena la lista de la distancia de la más corta a la más larga
-* `Collections.sort(allConnections);`
-
-
-* Toma solo las primeras 1000 conexiones (más cortas) y las une con el método find-union
-* `int limit = Math.min(1000, allConnections.size());
-for (int i = 0; i < limit; i++) {
-    union(parent, conn.indexA, conn.indexB);
-}`
-
-
-### Cálculo con Streams
-Para el resultado final (producto de los 3 grupos más grandes), utilicé un flujo declarativo: `agrupar -> ordenar -> limitar -> reducir`. Esto evita un "código espagueti" de bucles y contadores temporales.
+### Principio de Composición sobre Herencia (COI)
+Para resolver la conectividad del grafo, no hacemos que nuestro optimizador herede de una clase compleja de matemáticas. En su lugar, instanciamos y utilizamos `CircuitUnionFind` internamente. Esto respeta el **Principio de Composición sobre Herencia (COI)**, ya que en lugar de heredar código de una clase base, se recomienda tener un objeto con esa funcionalidad para componer el comportamiento deseado[cite: 37].
 
 ---
 
-## 4. Evolución a la Parte B: Árbol de Expansión Mínima (MST)
+## 3. Principios de Diseño
 
-### El Desafío
-El objetivo cambió de "hacer 1000 conexiones" a "conectar todo el sistema con el mínimo cable". Esto es la definición del algoritmo **Algoritmo de Kruskal**.
+### Principio de Responsabilidad Única (SRP)
+Aplicamos estrictamente que cada módulo o clase debe tener una sola razón para cambiar, reflejando la alta cohesión[cite: 30].
+* **Dónde está en el código:** 1. `JunctionParser`: Su única responsabilidad es transformar texto en objetos 3D.
+    2. `CircuitUnionFind`: Su única responsabilidad es gestionar la lógica matemática de conjuntos disjuntos.
+    3. `PlaygroundCompleter`: Su única responsabilidad es orquestar la simulación.
+       Si el formato de entrada cambia, solo se modifica el parser. Si la métrica del puzzle cambia, solo se modifica el orquestador.
 
-### Preparación
-Genero primero un grafo completo para ordenar todas las conexiones de más cortas a más larga
-```
-List<Connection> allConnections = new ArrayList<>();
-for (int i = 0; i < n; i++) {
-    for (int j = i + 1; j < n; j++) {
-        // ... calcula distancia y añade a la lista
-    }
-}
-Collections.sort(allConnections);
-```
+---
 
-### Implementación
-Adapté el algoritmo anterior. En lugar de iterar un número fijo de veces, llevo un contador de componentes (`numComponents`).
-Inicialmente hay N componentes (cada caja aislada). Cada vez que uno dos grupos distintos, resto 1.
+## 4. Normas, Leyes y Fundamentos
 
-**Condición de Parada (Eficiencia):**
-En el momento exacto en que `numComponents == 1`, sé que el grafo es totalmente conexo. Detengo el algoritmo inmediatamente.
+### Fundamentos: Alta Cohesión y Código Expresivo (Uso de Records)
+Para representar los puntos y las conexiones, utilizamos la estructura `record` de Java (`Point3D` y `Connection`). Esto promueve la **Alta Cohesión**, ya que las variables internas (x, y, z) de estas partes están estrechamente relacionadas y enfocadas en una única tarea: representar una coordenada espacial[cite: 16].
+Además, esto nos ayuda a mantener un **Código Expresivo**, haciendo que el código sea claro y comprensible, facilitando la lectura y el mantenimiento frente a otras alternativas como usar simples *arrays* de números[cite: 20].
 
-**Código de la Lógica Central:**
-```
-for (Connection conn : allConnections) {
-int rootA = find(parent, conn.indexA);
-int rootB = find(parent, conn.indexB);
+### Principio de no repetir código (DRY)
+Este principio dicta que cada pieza de conocimiento en un software debería tener una representación única inequívoca[cite: 40].
+* **Dónde está en el código:** La lógica para calcular la distancia espacial al cuadrado requiere varias operaciones matemáticas. En lugar de repetir esta fórmula cada vez que evaluamos dos puntos en los bucles anidados del orquestador, la hemos encapsulado una única vez en el método `distanceSquaredTo` dentro de `Point3D`.
 
-    if (rootA != rootB) {
-        parent[rootA] = rootB;
-        numComponents--; // Reducimos el número de islas
-        
-        if (numComponents == 1) {
-            // Conectado, devolvemos el resultado de esta última conexión
-            return calculateResult(points, conn); 
-        }
-    }
-}
-```
-
+### Fundamento: Abstracción
+La abstracción consiste en ocultar los detalles complejos detrás de una interfaz simple[cite: 21].
+* **Dónde está en el código:** La clase `CircuitUnionFind` maneja internamente la manipulación de arreglos (`parent`, `size`) y una optimización algorítmica compleja mediante recursividad. Sin embargo, oculta toda esa complejidad exponiendo únicamente una interfaz muy simple y limpia al orquestador a través del método `dsu.union(id1, id2)`.

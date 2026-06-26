@@ -1,100 +1,76 @@
-# DÍA 5: Cafetería (Inventory Management)
+---
+title: "Advent of Code - Día 5: La Cafetería y los Ingredientes Frescos"
+author: "Salwa Madani Lazaar"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    theme: flatly
+    highlight: tango
+---
 
-## 1. Explicación del Enunciado
+# Día 5: La Cafetería (Fusión de Intervalos)
 
-El problema nos sitúa en la cocina de la cafetería, donde debemos ayudar a los Elfos a distinguir ingredientes frescos basándonos en identificadores numéricos.
+## Descripción del Problema
+El Día 5 nos presenta un problema de inventario en una cafetería. Recibimos un archivo de texto con dos bloques de datos: una lista de rangos numéricos válidos (ej. `10-20`) y una lista de identificadores de ingredientes a comprobar. El objetivo en la Parte A es contar cuántos ingredientes son "frescos" (caen dentro de algún rango válido), y en la Parte B, calcular la capacidad total matemática de esos rangos.
 
-* **La Entrada:**
-* 1. Una lista de **rangos de ingredientes frescos** (ej: 3-5, 10-14)
-* 2. Una lista de **IDs disponibles** (números sueltos: 1, 5, 8...).
+---
 
+## Patrones de Diseño Utilizados
 
-* **Parte A:** Debemos filtrar la lista de IDs disponibles y contar cuántos de ellos caen dentro de **al menos uno** de los rangos de frescura.
-* **Parte B:** Ignoramos la lista de IDs disponibles. El objetivo ahora es calcular el **volumen total** de números únicos que cubren los rangos de frescura, teniendo en cuenta que muchos se superponen (ej: 10-20 y 15-25).
+### Patrón Iterator (Uso implícito)
+Según la teoría, este patrón proporciona una manera de acceder secuencialmente a los elementos de un objeto agregado sin exponer su representación subyacente. En Java, este patrón está profundamente integrado en las colecciones de programación[cite: 53].
+* **Dónde está en el código:**
+  Lo utilizamos implícitamente de dos formas. Primero, al usar el bucle iterador mejorado (`for-each`) para recorrer los intervalos sin manejar índices manuales:
+  ```java
+  for (Range r : mergedRanges) {
+      totalCapacity += (r.getEnd() - r.getStart() + 1);
+  }
+  ```
+  Y segundo, a través de la API de Streams en el orquestador, que internamente utiliza un iterador para procesar la colección de forma eficiente y uniforme separando la lógica de iteración de las estructuras de datos[cite: 53, 54]:
+  ```java
+  return availableIds.stream().filter(rule::isFresh).count();
+  ```
+  
+## 1. Fundamentos y Principios Estructurales
 
+### Principio de Composición sobre Herencia (COI) y DIP
+Para que el orquestador no estuviera acoplado a la fórmula matemática, apliqué el **Principio de Composición sobre Herencia (COI)**. En lugar de heredar de una clase base, el orquestador (`CafeteriaManager`) tiene un objeto con esa funcionalidad como propiedad inyectada.
+Además, esto cumple con el **Principio de Inversión de Dependencias (DIP)**, ya que el módulo de alto nivel depende de una abstracción (`FreshnessRule`) y no de detalles de bajo nivel.
+* **Dónde está en el código:**
+  La interfaz actúa como la abstracción:
+  ```java
+  public interface FreshnessRule {
+      boolean isFresh(long id);
+  }
+  ```
+  Y se inyecta como composición en el orquestador:
+  ```java
+  public CafeteriaManager(FreshnessRule rule) { this.rule = rule; }
+  ```
 
-## 2. Arquitectura y Estructura
+### Fundamentos: Alta Cohesión y Código Expresivo
+Cuando el parser necesita devolver múltiples conjuntos de datos distintos (la lista de rangos y la lista de IDs), la forma "sucia" sería devolver un arreglo genérico `Object[]`.
+En su lugar, he creado la clase `ParsedData` para agrupar estos datos y aplicar el fundamento de **Alta Cohesión**, ya que las partes de este componente están estrechamente relacionadas para la tarea de transferencia. Además, esto promueve un **Código Expresivo** que facilita la lectura y comprensión de lo que viaja entre las clases.
+* **Dónde está en el código:**
+  ```java
+  public static class ParsedData {
+      public final List<Range> ranges;
+      public final List<Long> availableIds;
+      public ParsedData(List<Range> r, List<Long> i) { ... }
+  }
+  ```
 
-Para resolver este problema, he diseñado una estructura basada en el **Agrupamiento Lógico** y el principio **SRP** (Responsabilidad Única).
+---
 
-**Clases Principales:**
+## 2. Principios SOLID Aplicados
 
-1. **InventoryManager:** Es la clase principal encargada de la lógica de negocio y del procesamiento de los datos (Streams).
-2. **Range (Clase Interna Estática):** He modelado el concepto de "intervalo" (inicio y fin) en una clase propia.
+### Principio de Responsabilidad Única (SRP)
+Cada módulo o clase debe tener una sola razón para cambiar, reflejando una alta cohesión.
+* **La prueba en tu código:** Separamos el "Parseo" de la "Lógica de Negocio". La clase `InventoryParser` es la única que sabe que el archivo de texto separa las secciones mediante una línea en blanco (`if (line.trim().isEmpty())`). Si los elfos deciden cambiar el formato del archivo `.txt`, el algoritmo matemático de los intervalos no sufrirá ningún cambio.
 
+### Principio Abierto Cerrado (OCP)
+Las clases deben estar abiertas para la extensión, pero cerradas para la modificación.
+* **La prueba en tu código:** La clase `CafeteriaManager` delega el cálculo a la abstracción. Gracias a esto, está cerrada a modificaciones: podríamos crear una nueva regla `StrictFreshnessRule` que exija que los números sean primos, inyectarla, y el `CafeteriaManager` seguirá funcionando y filtrando ingredientes sin alterar una sola coma de su interior.
 
-* **Cohesión:** Un Range solo tiene sentido en este contexto. Mantenerlo dentro evita contaminar el paquete con clases diminutas.
-* **Eficiencia:** Al ser static, no necesita acceder a la instancia de InventoryManager, lo que optimiza la memoria y deja claro que es una entidad de datos independiente.
-
-
-## 3. Parte A: Validación con Streams (Clase Range y Filtrado)
-
-### 1. Clase Interna Range (Encapsulamiento)
-
-Primero, definí una clase interna estática `Range`. Su responsabilidad es parsear su propia entrada y validar si un número le pertenece.
-
-> Defensa: Al mover el `split` y el `parseLong` al constructor, libero a la clase principal de lidiar con formatos de texto. 
-
-### 2. Método isFresh (Búsqueda Eficiente)
-
-Este método auxiliar es el motor de búsqueda.
-
-Defensa: Utilicé `anyMatch` de la API de Streams porque no recorre toda la lista, sino que en el momento exacto en que encuentra el primer rango que contiene al ID, devuelve true y detiene la búsqueda. 
-
-### 3. Método Principal countFreshIngredients (Orquestación)
-
-Finalmente, el método principal conecta los datos.
-```
-return availableIds.stream()
-        .filter(id -> isFresh(id, freshRanges))
-        .count();
-```
-
-> Defensa: el algoritmo principal es puramente declarativo 'de los IDs disponibles, filtra los que sean frescos y cuéntalos'. 
-
-## 4. Evolución a la Parte B: Fusión de Intervalos (Merge Intervals)
-
-### 1. Preparación: Interfaz Comparable
-
-Para fusionar intervalos eficientemente, primero deben estar ordenados. Por eso modifiqué la clase Range para implementar Comparable.
-```
-@Override
-public int compareTo(Range other) {
-    return Long.compare(this.start, other.start);
-}
-````
-
-> Defensa: Esto me permite usar `Collections.sort(ranges)`. Ordenar los rangos por su punto de inicio es un prerrequisito matemático para poder resolver el problema en una sola pasada lineal (O(N))
-
-### 2. Algoritmo de Fusión (El Núcleo Lógico)
-
-Iteramos la lista ordenada comparando el rango `current` (actual) con el `next` (siguiente).
-```
-if (next.start <= current.end) {
-    // Caso A: Solapamiento
-    current.end = Math.max(current.end, next.end);
-} else {
-    // Caso B: Hueco (Gap)
-    mergedRanges.add(current);
-    current = next;
-}
-```
-
-Defensa: 
-* `next.start <= current.end` "Si el siguiente rango empieza antes de que termine el actual, significa que se solapan o son contiguos.
-* Usamos `Math.max` porque un rango podría estar totalmente contenido dentro de otro.
-* El else: Si no se tocan, significa que hay un hueco. Guardamos el rango actual como 'cerrado' en la lista de resultados `mergedRanges` y convertimos el siguiente rango en el nuevo current.
-
-### 3. Cálculo Final (Suma de Longitudes)
-
-Una vez que tenemos los rangos fusionados (sin solapamientos), solo queda sumar sus tamaños.
-```
-return mergedRanges.stream()a
-        .mapToLong(Range::length)
-        .sum();
-
-// En Range:
-public long length() { return end - start + 1; }
-```
-
-> Defensa: Delegué el cálculo matemático a Range::length. Nótese el +1: en rangos inclusivos (ej: 5-5 tiene longitud 1), esta aritmética es propensa a errores si se hace manualmente en el bucle principal. Encapsularlo garantiza la corrección."
+---

@@ -1,4 +1,4 @@
-package software.aoc.day10;
+package software.aoc.day10.b;
 
 import java.util.List;
 
@@ -9,9 +9,9 @@ public class FactoryManager {
         this.solver = solver;
     }
 
-    public long processAll(List<Machine> machines) {
+    public int configureAll(List<Machine> machines) {
         return machines.stream()
-                .mapToLong(solver::solve)
+                .mapToInt(solver::solve)
                 .sum();
     }
 }

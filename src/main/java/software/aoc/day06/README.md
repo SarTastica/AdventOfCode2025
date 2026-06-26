@@ -1,125 +1,88 @@
-# DÍA 6: Trash Compactor (Math Worksheets)
+---
+title: "Advent of Code - Día 6: Matemáticas para Cefalópodos"
+author: "Salwa Madani Lazaar"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    theme: flatly
+    highlight: tango
+---
 
-## 1. Explicación del Enunciado
+# Día 6: Matemáticas para Cefalópodos (Estrategias y Matrices)
 
-Nos enfrentamos a una hoja de ejercicios alienígena donde el desafío no es la complejidad matemática, sino el **formato visual** de los datos.
-
-**La Entrada:**
-Un archivo de texto que representa "hojas de cálculo" donde los problemas matemáticos no están línea por línea, sino distribuidos espacialmente.
-
-* **Formato General:** Los problemas están agrupados en bloques visuales separados por **columnas verticales vacías** (espacios en blanco).
-* **Parte A (Horizontal):** Debemos leer los problemas de izquierda a derecha. Los números y operadores se extraen cortando el texto horizontalmente.
-* **Parte B (Vertical):** Descubrimos que la lectura correcta es de arriba a abajo. Los números se forman leyendo los dígitos verticalmente en cada columna, lo que complica el parseo debido a que las líneas de texto tienen longitudes irregulares ("ragged arrays").
+## Descripción del Problema
+En el Día 6 nos encontramos ayudando a unos cefalópodos a resolver problemas matemáticos. El reto consiste en leer una "hoja de cálculo" en texto plano donde las operaciones y los números están dispuestos visualmente en el espacio. En la Parte A, los problemas se leen en columnas adyacentes de izquierda a derecha. En la Parte B, las reglas cambian drásticamente: el formato visual rota 90 grados y los problemas se leen verticalmente (de arriba a abajo).
 
 ---
 
-## 2. Arquitectura: Polimorfismo y SRP
+## 1. Patrones de Diseño Utilizados
 
-El diseño se basa en separar la **Lógica Espacial** (dónde está el problema) de la **Lógica Matemática** (cómo se resuelve).
+### Patrón Strategy (Estrategia)
+Se utiliza para aislar las operaciones matemáticas. Si el día de mañana los cefalópodos descubren la resta o la división, el motor principal no sufrirá cambios.
+* **Dónde está en el código:**
+  La interfaz `OperationStrategy` es la abstracción. Sus implementaciones concretas usan el paradigma funcional (Streams) para resolver el cálculo:
+  ```java
+  public class AdditionStrategy implements OperationStrategy {
+      @Override
+      public long execute(List<Long> operands) {
+          return operands.stream().mapToLong(Long::longValue).sum();
+      }
+  }
+  ```
 
-### Responsabilidad Única (SRP)
-Dividí el problema en dos métodos especialistas:
-1.  **calculateGrandTotal (El Escáner):** Solo sabe de coordenadas y espacios vacíos. Detecta bloques.
-2.  **solveProblem (El Intérprete):** Solo sabe de números y operadores. Procesa un bloque aislado.
+### Patrón Factory
+En lugar de instanciar la estrategia directamente, delegamos la responsabilidad de "decidir qué estrategia usar basándose en un símbolo" a una fábrica proveedora.
+* **Dónde está en el código:**
+  La interfaz `StrategyProvider` y su implementación `StandardMathProvider` aplican el nuevo y limpio `switch` de Java para devolver objetos polimórficos:
+  ```java
+  public OperationStrategy getStrategyFor(char symbol) {
+      return switch (symbol) {
+          case '+' -> new AdditionStrategy();
+          case '*' -> new MultiplicationStrategy();
+          default -> throw new IllegalArgumentException(...);
+      };
+  }
+  ```
 
-### Enum con Comportamiento (Polimorfismo)
-En lugar de usar condicionales (`if/switch`) dispersos para calcular, encapsulé la lógica en un `enum Operation`.
-
-**Código del Enum:**
-
-```private enum Operation {
-ADD { 
-@Override 
-long apply(long a, long b) { return a + b; } },
-
-MULTIPLY { 
-@Override 
-long apply(long a, long b) { return a * b; } };
-
-abstract long apply(long a, long b);
-}
-```
-
-> **Defensa (OCP):** Esto respeta el principio **Open/Closed**. Si mañana añaden divisiones, solo añado una constante al Enum sin tocar el algoritmo de resolución.
-
-
----
-
-## 3. Parte A: Escaneo Visual y Parsing
-
-### Algoritmo de Barrido
-Identificar dónde empieza y termina un problema en un flujo de texto continuo.
-
-**Estrategia:**
-Utilizo una lista temporal (`currentBlockCols`) que actúa como **buffer**.
-1.  Si la columna tiene datos, se añade al buffer
-```
-} else {
-    currentBlockCols.add(col); // Aquí se añade al buffer si NO está vacía
-}
-```
-2.  Si la columna está vacía (separador) **Y** el buffer tiene datos, disparamos la resolución (`solveProblem`) y limpiamos el buffer.
-
-**Código de Control:**
-```
-if (isEmptyColumn(col, lines)) {
-    if (!currentBlockCols.isEmpty()) {
-        grandTotal += solveProblem(currentBlockCols, lines);
-        currentBlockCols.clear();
-    }
-```
-### Abstracción
-El archivo de entrada las líneas tienen distintas longitudes, por lo que acceder a `line.charAt(col)` sin precauciones lanzaría una `StringIndexOutOfBoundsException`.
-
-Para mitigar esto, encapsulé la lógica de acceso seguro en `isEmptyColumn`.
-
-Para una mayor robustez, se verifica `col < line.length()` antes de leer permitiendo que el algoritmo principal trate la entrada como una matriz rectangular perfecta, delegando la complejidad de los límites a este método auxiliar.
-
-### Estrategia de Parsing 
-Dentro de `solveProblem`, extraigo el "segmento" de texto correspondiente al bloque detectado.
-Para distinguir entre números y operadores (`*`, `+`) en un entorno visualmente sucio, utilizo una estrategia de **Fallback**.
-
-**Lógica de Decisión:**
-1.  Se extrae y limpia el segmento (`trim()`).
-2.  Se intenta parsear como `Long`.
-3.  Si falla (bloque `catch` o validación), se asume que es una `Operation` (Enum).
-
-> **Justificación:** Dado que la alineación visual puede variar, esta estrategia es resiliente. No dependemos de posiciones fijas, sino del **tipo de dato** contenido en el segmento para decidir el comportamiento.
+### Inyección de Dependencias (DI)
+* **Dónde está en el código:** El motor `CephalopodCalculator` recibe la fábrica a través de su constructor: `public CephalopodCalculator(StrategyProvider provider)`. Esto significa que si en otra parte del puzzle cambian los símbolos (ej. `#` para sumar), solo inyectamos un proveedor distinto.
 
 ---
 
-## 4. Evolución a la Parte B: Lectura Vertical
+## 2. Principios SOLID Aplicados
 
-El requisito cambió a leer los números verticalmente. El problema técnico es que el archivo de texto no es un rectángulo perfecto; las líneas tienen **longitudes variables**.
+### Principio Abierto/Cerrado (OCP)
+* **La prueba en tu código:** La clase `CephalopodCalculator` orquesta la resolución de problemas. Al pasar a la Parte B (donde la forma de leer la hoja de papel cambia por completo), **no fue necesario tocar este orquestador en absoluto**. El sistema acepta la nueva lista de `MathProblem` y sigue funcionando de manera idéntica. Está abierto a la extensión de parsers y reglas, pero cerrado a la modificación de su núcleo.
 
-Si intentamos acceder a la columna 10 en una fila que solo tiene 5 caracteres (fila corta), Java lanzará una `StringIndexOutOfBoundsException`. No podemos asumir una matriz cuadrada.
+### Principio de Responsabilidad Única (SRP) mediante Composición
+En la Parte A, tuvimos un `WorksheetParser` monolítico. Para la Parte B, en lugar de crear un monstruo ilegible, dividimos el problema en tres componentes altamente cohesivos:
+1. `MatrixTransposer`: Su única responsabilidad es rotar la matriz de strings.
+2. `ProblemExtractor`: Su única responsabilidad es convertir un string limpio en un `MathProblem`.
+3. `VerticalWorksheetParser`: Orquesta a los dos anteriores (Patrón Facade/Composición).
 
-### Solución: Diseño Defensivo (`getSafeChar`)
-Para evitar llenar el código principal de `if-else` para comprobar longitudes, implementé el método `getSafeChar`.
+---
 
-**Código de Seguridad:**
-```
-private char getSafeChar(String line, int col) {
-    if (col < line.length()) {
-        return line.charAt(col);
-    }
-    return ' '; // Valor por defecto seguro (Null Object Pattern visual)
-}
-```
+## 3. Normas de Arquitectura y Clean Code
 
-> **Defensa:** Este método normaliza la entrada virtualmente. El algoritmo principal puede "fingir" que la matriz es un rectángulo perfecto lleno de espacios, simplificando drásticamente la lógica de los bucles y eliminando el riesgo de excepciones.
+### Tell, Don't Ask (Delega, no preguntes)
+En lugar de que el calculador extraiga los operandos del objeto y haga la matemática él mismo, el calculador le pasa la estrategia al problema para que este se resuelva a sí mismo.
+* **Dónde está en el código:**
+  En la clase `MathProblem`:
+  ```java
+  public long solve(OperationStrategy strategy) {
+      // El objeto MathProblem oculta su lista de operandos y simplemente invoca la estrategia
+      return strategy.execute(this.operands);
+  }
+  ```
 
-### Eficiencia: Construcción Mutable
-Para leer los números, debemos bajar fila por fila en una misma columna.
+### Programación Funcional y Reducción (MapReduce)
+En la clase `MultiplicationStrategy`, evitamos el clásico y propenso a errores bucle `for` acumulativo.
+* **Dónde está en el código:**
+  Usamos la operación terminal `reduce` de la API de Streams, pasando la semilla `1L` y la función lambda multiplicadora:
+  ```java
+  return operands.stream().reduce(1L, (a, b) -> a * b);
+  ```
 
-```
-**Construcción Vertical:**
+---
 
-StringBuilder numBuilder = new StringBuilder();
-for (int row = 0; row < lastRowIndex; row++) { 
-    char c = getSafeChar(lines.get(row), col);
-    if (Character.isDigit(c)) numBuilder.append(c);
-}
-```
-> **Defensa Técnica:** Utilicé `StringBuilder` en lugar de la concatenación normal (`s += c`).
-> En Java, los Strings son **inmutables**. Concatenar en un bucle crea un nuevo objeto String en memoria por cada carácter, lo que tendría una complejidad **O(N²)**. `StringBuilder` es mutable, permitiendo una construcción eficiente **O(N)**.

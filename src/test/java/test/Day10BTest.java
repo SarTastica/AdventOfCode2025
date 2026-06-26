@@ -1,11 +1,12 @@
 package test;
 
 import org.junit.jupiter.api.Test;
-import software.aoc.day10.FactoryManager;
-import software.aoc.day10.FactoryParser;
-import software.aoc.day10.Machine;
-import software.aoc.day10.MachineSolver;
-import software.aoc.day10.b.JoltageOptimizer;
+// ¡Solo imports de la carpeta B!
+import software.aoc.day10.b.FactoryManager;
+import software.aoc.day10.b.FactoryParser;
+import software.aoc.day10.b.Machine;
+import software.aoc.day10.b.MachineSolver;
+import software.aoc.day10.b.MemoizedMachineSolver;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,16 +21,15 @@ public class Day10BTest {
         var resource = getClass().getClassLoader().getResource("day10-a/input.txt");
         if (resource == null) throw new RuntimeException("Archivo no encontrado");
 
-        List<String> lines = Files.readAllLines(Path.of(resource.toURI()));
+        String input = Files.readString(Path.of(resource.toURI()));
 
         FactoryParser parser = new FactoryParser();
-        List<Machine> machines = parser.parse(lines);
+        List<Machine> machines = parser.parse(input);
 
-        MachineSolver strategy = new JoltageOptimizer();
-
+        MachineSolver strategy = new MemoizedMachineSolver();
         FactoryManager manager = new FactoryManager(strategy);
 
-        long result = manager.processAll(machines);
+        long result = manager.configureAll(machines);
 
         System.out.println("***********************************");
         System.out.println("SOLUCIÓN DAY 10 - PART B: " + result);
