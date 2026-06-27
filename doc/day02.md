@@ -1,5 +1,5 @@
 ---
-title: "Advent of Code - Día 2: La Tienda de Regalos"
+title: "Advent of Code - Día 2: La Tienda de Regalos (Validaciones y Principios SOLID)"
 author: "Salwa Madani Lazaar"
 date: "`r Sys.Date()`"
 output: 
@@ -9,48 +9,61 @@ output:
     highlight: tango
 ---
 
-# Día 2: La Tienda de Regalos (Patrón Strategy y OCP)
+# Día 2: La Tienda de Regalos (Análisis Arquitectónico)
 
 ## Descripción del Problema
-En el Día 2 debemos procesar una base de datos de una tienda de regalos que viene en formato de rangos numéricos (ej. `10-20, 50-60`). El objetivo es sumar todos los IDs que se consideren "inválidos". En la **Parte A**, un ID es inválido si su primera mitad es exactamente igual a su segunda mitad. En la **Parte B**, la regla cambia: el ID es inválido si está formado por un patrón que se repite múltiples veces. Al compartir el mismo flujo de datos pero cambiar la regla matemática, este día es el escenario perfecto para aplicar el Patrón Strategy.
+El Día 2 nos plantea el reto de procesar una base de datos de la tienda de regalos (`GiftShop`), donde debemos validar identificadores numéricos generados a partir de rangos. La complejidad radica en que las reglas de validación cambian entre la **Parte A** y la **Parte B**. El objetivo del diseño es crear un orquestador central que pueda leer los rangos y sumar los resultados sin acoplarse a las reglas matemáticas específicas de cada parte.
 
 ---
 
-## 1. Patrones de Diseño
+## 1. Patrones de Diseño Aplicados
 
-### Patrón Strategy
-En lugar de crear dos clases orquestadoras distintas (una para la Parte A y otra para la Parte B), hemos implementado el **Patrón Strategy** a través de la interfaz genérica `ValidationRule`.
-* **Dónde está en el código:** La clase general `GiftShop` no sabe cómo validar un ID. Simplemente confía en la interfaz `ValidationRule`. Las implementaciones concretas (`RepeatedHalfRule` y `RepeatedPatternRule`) encapsulan el algoritmo específico, permitiendo intercambiar la lógica de validación dinámicamente sin alterar el motor principal de la base de datos.
+Según la teoría, los patrones de diseño son soluciones típicas a problemas comunes en el diseño de software. Actúan como plantillas para resolver problemas contextuales.
 
----
+### Patrón Iterator
+* **Teoría:** Proporciona una manera de acceder secuencialmente a los elementos de un objeto agregado sin exponer su representación subyacente. Separa la lógica de iteración de las estructuras de datos, mejorando la modularidad.
+* **Aplicación en el código:** Se aplica de forma nativa y moderna a través de la API de Streams de Java. En la clase `GiftShop`, métodos como `Arrays.stream(...)` y `flatMapToLong(Range::stream)` recorren y procesan las secuencias de IDs y rangos de forma secuencial y transparente.
+* **Justificación:** Gracias a este patrón, el orquestador no necesita gestionar índices de matrices ni controlar bucles `for` manualmente. Oculta la complejidad de la estructura subyacente, permitiendo encadenar operaciones (`map`, `filter`, `sum`) de forma limpia, eficiente y libre de errores de límites de iteración.
 
-## 2. Inyecciones y Acoplamiento
+## 2. Principios de Diseño
 
-### Inyección por Constructor e Inversión de Dependencias (DIP)
-El orquestador principal delega el comportamiento de filtrado.
-* **Dónde está en el código:** `GiftShop` recibe la interfaz `ValidationRule` a través de su constructor (`this.rule = rule;`). Esto garantiza que el módulo de alto nivel (el lector de rangos) dependa de una abstracción pura (la interfaz) en lugar de depender de detalles de bajo nivel (las expresiones regulares). Esto mantiene un nivel de **Bajo Acoplamiento** óptimo.
+Los principios de diseño son normas o guías que orientan cómo se deben aplicar los fundamentos en la práctica. Actúan como restricciones o reglas que ayudan a alcanzar los fundamentos
 
----
-
-## 3. Principios de Diseño
+### Principio de Inversión de Dependencias (DIP)
+* **Teoría:** Módulos de alto nivel no deben depender de módulos de bajo nivel, sino de abstracciones.
+* **Aplicación en el código:** En lugar de que la clase `GiftShop` (alto nivel) dependa directamente de `RepeatedHalfRule` o `RepeatedPatternRule` (bajo nivel), depende exclusivamente de la abstracción `ValidationRule`.
+* **Justificación:** Esto permite que el orquestador principal delegue el comportamiento de filtrado. Si la lógica de las expresiones regulares cambia, el módulo principal de la tienda de regalos no sufre ningún impacto.
 
 ### Principio Abierto Cerrado (OCP)
-Las entidades de software deben estar abiertas para su extensión, pero cerradas para su modificación.
-* **Dónde está en el código:** Si los elfos deciden añadir una "Parte C" con una nueva regla de validación de IDs, el código de `GiftShop` y `Range` no se tocará en absoluto (cerrado a modificación). Simplemente crearemos una nueva clase que implemente `ValidationRule` y se la inyectaremos (abierto a extensión).
+* **Teoría:** Las clases deben estar abiertas para la extensión, pero cerradas para la modificación.
+* **Aplicación en el código:** Si los requisitos del problema añaden una nueva regla de validación de IDs, el código de `GiftShop` y `Range` no se modificará en absoluto (cerrado a modificación). Simplemente crearemos una nueva clase que implemente la interfaz `ValidationRule` y se la inyectaremos (abierto a extensión).
 
-### Principio DRY (Don't Repeat Yourself)
-Cada pieza de conocimiento debe tener una representación única.
-* **Dónde está en el código:** A diferencia de diseños menos maduros que duplican toda la clase de la base de datos para separar la Parte A de la Parte B, nuestra arquitectura centraliza la lectura, desempaquetado de rangos y suma matemática en una única clase general (`GiftShop`). Esto elimina la redundancia y previene errores de mantenimiento.
+### Principio de no repetir código (DRY) y SRP
+* **Teoría:** DRY indica que cada pieza de conocimiento en un software debería tener una representación única inequívoca. SRP establece que cada módulo o clase debe tener una sola razón para cambiar, reflejando la alta cohesión
+* **Aplicación en el código:** En diseños menos maduros, se duplicaría toda la clase de la base de datos para separar la Parte A de la Parte B. Nuestra arquitectura centraliza la lectura, el desempaquetado de rangos y la suma matemática en una única clase general (`GiftShop`). Cada regla de validación reside en su propia clase, teniendo una única responsabilidad y eliminando la redundancia.
 
 ---
 
-## 4. Normas, Leyes y Fundamentos
+## 3. Fundamentos de Diseño
 
-### Fundamento: Alta Cohesión
-Las partes de un módulo o componente deben estar estrechamente relacionadas y enfocadas en una única tarea.
-* **Dónde está en el código:** Se extrajo la manipulación de las cadenas de texto (`split("-")`) y la lógica de inicio/fin a un record inmutable dedicado llamado `Range`. De este modo, los datos de los límites y el método para generar un flujo de números (`stream()`) viven juntos de forma altamente cohesiva, liberando a `GiftShop` de la manipulación de bajo nivel.
+Los fundamentos de diseño son los conceptos o creencias básicas que subyacen en la práctica del diseño de software. Son las cualidades inherentes que se consideran deseables en cualquier sistema de software
 
-### Fundamento: Código Expresivo (Streams y Regex)
-El código debe ser claro y comprensible, casi como lenguaje natural.
-* **Dónde está en el código:** 1. Se sustituyeron los bucles `for` anidados por la API de Streams de Java (`flatMapToLong`, `filter`, `sum`), haciendo que la lectura de la secuencia de operaciones sea declarativa.
-  2. Las validaciones matemáticas complejas se sustituyeron por **Expresiones Regulares (Regex)** (`^([0-9]+)\\1+$`). Estas expresiones son soluciones elegantes, estándar y directas para buscar patrones repetidos en cadenas, reduciendo drásticamente la complejidad ciclomática del algoritmo.
+### Alta Cohesión
+* **Teoría:** Refiere a la idea de que las partes de un módulo o componente deben estar estrechamente relacionadas y enfocadas en una única tarea.
+* **Aplicación en el código:** Se extrajo la manipulación de las cadenas de texto (`split("-")`) y la lógica de los límites de inicio y fin a un record inmutable dedicado llamado `Range`. De este modo, los datos de los límites y el método para generar un flujo de números (`stream()`) viven juntos de forma altamente cohesiva.
+
+### Bajo Acoplamiento y Abstracción
+* **Teoría:** Bajo acoplamiento es la idea de diseñar módulos o componentes que tienen pocas interdependencias. La abstracción consiste en ocultar los detalles complejos detrás de una interfaz simple.
+* **Aplicación en el código:** Al utilizar la interfaz `ValidationRule`, ocultamos la complejidad algorítmica de las Expresiones Regulares. Las clases que definen las reglas no saben de dónde vienen los IDs, y la clase que genera los IDs no sabe cómo se validan, logrando interdependencias mínimas.
+
+### Código Expresivo
+* **Teoría:** El código debería ser claro y comprensible, facilitando la lectura y el mantenimiento.
+* **Aplicación en el código:** * Se sustituyeron los bucles anidados por la API de Streams de Java (`flatMapToLong`, `filter`, `sum`), haciendo que la lectura de la secuencia de operaciones sea completamente declarativa.
+  * Las validaciones matemáticas complejas se sustituyeron por Expresiones Regulares (Regex) puras (ej. `^([0-9]+)\\1+$`). Estas expresiones reducen drásticamente la complejidad ciclomática del algoritmo, haciendo el código más claro y conciso.
+
+---
+
+## 4. Inyecciones de Dependencia
+
+* **Aplicación en el código:** La clase `GiftShop` recibe la interfaz `ValidationRule` a través de su constructor (`this.rule = rule;`).
+* **Justificación:** La inyección por constructor es el mecanismo arquitectónico que hace posible el Principio de Inversión de Dependencias (DIP). Garantiza que las dependencias necesarias para que el objeto funcione estén presentes desde el momento de su instanciación, evitando estados inválidos y facilitando la creación de pruebas unitarias al permitir inyectar reglas simuladas (mocks).

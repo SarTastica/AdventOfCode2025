@@ -1,68 +1,71 @@
 ---
-title: "Advent of Code - Día 10: Configuración de la Fábrica"
+title: "Advent of Code - Día 10: Configuración de la Fábrica (Análisis Teórico)"
 author: "Salwa Madani Lazaar"
 date: "`r Sys.Date()`"
-output:
+output: 
   html_document:
     toc: true
     theme: flatly
     highlight: tango
 ---
 
-# Día 10: Configuración de la Fábrica
+# Día 10: Optimización de la Fábrica (Análisis de Diseño)
 
 ## Descripción del Problema
-En el Día 10 debemos optimizar la configuración de una serie de máquinas en una fábrica. Cada máquina cuenta con botones que alteran los niveles de energía (joltages) mediante un cableado específico. El objetivo es encontrar la cantidad mínima de pulsaciones necesarias para alcanzar un estado objetivo. La dificultad reside en la explosión combinatoria del espacio de estados y en la necesidad de mantener el código estructurado ante una lectura de datos compleja.
+El desafío consiste en configurar una serie de máquinas donde cada una tiene botones que alteran los voltajes. El objetivo es alcanzar un estado objetivo mediante el mínimo número de pulsaciones. Arquitectónicamente, esto implica separar la lógica de parseo del archivo de entrada de la lógica de optimización (búsqueda de caminos y memoización).
 
 ---
 
 ## 1. Patrones de Diseño
 
-### Patrón Strategy
-* **Dónde está en el código:** Creación de las interfaces `InitializationStrategy` (Parte A) y `MachineSolver` (Parte B), y sus implementaciones concretas `BfsInitializationOptimizer` y `MemoizedMachineSolver`.
-* **Justificación:** Aisla completamente la algoritmia matemática del flujo de control principal. Permite intercambiar estrategias de resolución sin afectar al resto del sistema.
+Los patrones de diseño son soluciones típicas a problemas comunes en el diseño de software.
 
-### Patrón Factory (Especializado en Parsing)
-* **Dónde está en el código:** La clase `FactoryParser`.
-* **Justificación:** Centraliza la lógica de creación de objetos complejos. Al delegar la interpretación de las expresiones regulares y la limpieza de cadenas (`stripParentheses`) a esta clase, las entidades de dominio quedan libres de lógica de creación.
+### Patrón Factory Method
+* **Justificación:** Se utiliza para encapsular la creación de objetos complejos.
+* **Aplicación:** La clase `FactoryParser` implementa este patrón al transformar cadenas de texto crudas en entidades de negocio (`Machine`, `Button`).
+* **Utilidad:** Esta centralización permite que el sistema maneje cambios en el formato de entrada (como cambios en los separadores o paréntesis) sin necesidad de modificar las entidades de dominio, desacoplando la lógica de creación de la representación de los objetos[cite: 50].
+
 
 ---
 
 ## 2. Inyecciones y Acoplamiento
 
-### Inyección de Dependencias por Constructor
-* **Dónde está en el código:** Las clases `FactoryManager` (tanto en la parte A como en la B) reciben sus estrategias (`InitializationStrategy` o `MachineSolver`) a través del constructor.
-* **Justificación:** Garantiza que el orquestador (`FactoryManager`) no tenga la responsabilidad de instanciar los motores matemáticos. Esto facilita enormemente el testing, ya que se pueden inyectar estrategias *mockeadas* o de prueba.
-
-### Bajo Acoplamiento Estructural
-* **Dónde está en el código:** El flujo de datos va desde `FactoryParser` $\rightarrow$ `List<Machine>` $\rightarrow$ `FactoryManager`.
-* **Justificación:** El orquestador desconoce cómo se leen los datos del archivo de texto, y el *parser* desconoce cómo se resuelven los puzzles. Si el formato del `.txt` cambia mañana, los algoritmos matemáticos no sufren ni un solo cambio.
+### Principio de Inversión de Dependencias (DIP)
+* **Justificación:** Los módulos de alto nivel no deben depender de módulos de bajo nivel, sino de abstracciones.
+* **Aplicación:** El `FactoryManager` y los solvers no dependen de implementaciones concretas de resolución. Se utiliza la inyección por constructor para recibir las estrategias (`InitializationStrategy` o `MachineSolver`).
+* **Utilidad:** Esto garantiza un **Bajo Acoplamiento**, permitiendo probar la lógica de negocio independientemente del método de parseo o de las implementaciones algorítmicas.
 
 ---
 
 ## 3. Principios de Diseño
 
+Los principios de diseño actúan como normas que orientan cómo aplicar los fundamentos en la práctica.
+
 ### Principio de Responsabilidad Única (SRP)
-* **Dónde está en el código:** La solución está fuertemente dividida en capas:
-    1. **Lectura y Transformación:** `FactoryParser`.
-    2. **Almacenamiento de Estado:** `Machine`, `Button`, `JoltageState`, `JoltageEffect`.
-    3. **Lógica de Negocio:** Optimizadores y Solvers.
-    4. **Orquestación:** `FactoryManager`.
-* **Justificación:** Evita el antipatrón de "Clase Dios" (God Class) o *Fat Domain Model*, donde una sola clase hace de todo.
+* **Justificación:** Cada módulo o clase debe tener una sola razón para cambiar, reflejando la alta cohesión
+* **Aplicación:** Se ha dividido el sistema en capas: `FactoryParser` (transformación), `Machine` (dominio) y `MachineSolver` (lógica).
+* **Utilidad:** Evita el antipatrón de la "Clase Dios", asegurando que si la lógica de negocio cambia, no sea necesario tocar el código de lectura de archivos.
 
 ### Principio Abierto/Cerrado (OCP)
-* **Dónde está en el código:** La relación entre `FactoryManager` y `MachineSolver`.
-* **Justificación:** La clase manager está *cerrada* a la modificación (no necesitamos tocarla) pero *abierta* a la extensión (podemos crear una nueva clase `HeuristicMachineSolver` e inyectarla sin problemas).
+* **Justificación:** Las clases deben estar abiertas para la extensión, pero cerradas para la modificación.
+* **Aplicación:** El `FactoryManager` es un sistema cerrado a modificaciones; su código no cambia cuando añadimos nuevos solvers. Está abierto a la extensión, ya que podemos inyectar nuevos `MachineSolver` sin alterar el orquestador principal.
+
+### Principio DRY (Don't Repeat Yourself)
+* **Justificación:** Cada pieza de conocimiento debe tener una representación única inequívoca.
+* **Aplicación:** La lógica de parseo y la creación de las `Machine` se centraliza en una única clase, evitando la duplicación de código en la Parte A y Parte B.
 
 ---
 
-## 4. Normas, Leyes y Fundamentos
+## 4. Fundamentos de Diseño
 
-### Fundamento: Inmutabilidad (Records)
-* **Dónde está en el código:** Se han utilizado `records` para modelar el dominio puro (`Machine`, `Button`, `JoltageState`, `JoltageEffect`).
-* **Justificación:** Garantiza que una vez creada la máquina o el estado de voltaje, nadie puede mutarlo accidentalmente. Esto es crítico en algoritmos que exploran múltiples caminos simultáneamente (como BFS).
+Son las cualidades inherentes deseables en cualquier sistema de software.
 
-### Fundamento: Funciones Puras y Thread-Safety (Sin Estado Mutable)
-* **Dónde está en el código:** En el `MemoizedMachineSolver`, el mapa de memoización (`knownStates`) se inicializa en el método `solve` y se pasa como argumento recursivo, en lugar de ser un atributo de la clase.
-* **Justificación:** Convierte a la estrategia en una entidad *Stateless*. Esto significa que el algoritmo es seguro para hilos (*thread-safe*) y permitiría procesar múltiples máquinas en paralelo (`parallelStream()`) sin corrupción de memoria.
+### Alta Cohesión
+* **Justificación:** Refiere a que las partes de un módulo deben estar estrechamente relacionadas y enfocadas en una única tarea.
+* **Aplicación:** El uso de `records` (como `JoltageState` y `Machine`) permite agrupar datos y comportamiento relacionado de forma natural.
+* **Utilidad:** Al encapsular el estado de voltaje junto con métodos como `isSolved()`, logramos una entidad altamente cohesiva que no depende de factores externos para validar su propia integridad.
 
+### Código Expresivo y Abstracción
+* **Justificación:** El código debe ser claro y la abstracción ayuda a ocultar detalles complejos.
+* **Aplicación:** La interfaz `MachineSolver` oculta la complejidad del algoritmo de memoización. El orquestador interactúa con una interfaz simple `solve(Machine machine)`, sin preocuparse por si la implementación utiliza `HashMap`, memoización o fuerza bruta.
+* **Utilidad:** Facilita el mantenimiento y la lectura del sistema, permitiendo que cualquier desarrollador entienda la intención del código sin necesidad de descifrar la implementación de bajo nivel.

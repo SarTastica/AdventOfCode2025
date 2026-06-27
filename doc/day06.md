@@ -1,5 +1,5 @@
 ---
-title: "Advent of Code - Día 6: Los Cálculos de los Cefalópodos"
+title: "Advent of Code - Día 6: Matemáticas de Cefalópodos (Fábricas y DIP)"
 author: "Salwa Madani Lazaar"
 date: "`r Sys.Date()`"
 output: 
@@ -9,41 +9,59 @@ output:
     highlight: tango
 ---
 
-# Día 6: Cálculos de Cefalópodos (Patrón Strategy vs Enums y Principio OCP)
+# Día 6: Hojas de Cálculo y Matemáticas de Cefalópodos
 
 ## Descripción del Problema
-En el Día 6, debemos ayudar a unos cefalópodos a resolver hojas de cálculo matemáticas. El núcleo del problema radica en cómo se leen los datos: en la **Parte A**, las ecuaciones se leen de forma estándar (horizontalmente), mientras que en la **Parte B**, la hoja de cálculo ha sido rotada y las ecuaciones deben extraerse leyendo las columnas verticalmente de derecha a izquierda. Sin embargo, las operaciones matemáticas subyacentes (suma y multiplicación) son idénticas en ambas partes. El reto arquitectónico es aislar el algoritmo de parseo visual de la lógica matemática.
+En el Día 6 nos enfrentamos a la evaluación de problemas matemáticos (`MathProblem`) a partir de unas hojas de cálculo algo peculiares. La **Parte A** requiere leer las operaciones de forma horizontal, mientras que la **Parte B** introduce una complejidad de parseo leyendo las columnas de forma vertical. En ambas partes, el objetivo es aplicar la operación correcta (suma o multiplicación) a una lista de operandos. El desafío arquitectónico es evitar que la lógica de parseo se enrede con el motor matemático, permitiendo que las operaciones sean escalables.
 
 ---
 
-## 1. Patrones de Diseño
+## 1. Patrones de Diseño Aplicados
 
-### Patrón Strategy (El antídoto contra los Enums estáticos)
-* **Dónde está en el código:** Se ha implementado un motor de cálculo basado en el **Patrón Strategy** (`OperationStrategy`, `AdditionStrategy`, `MultiplicationStrategy`) provisto por una fábrica abstracta (`StrategyProvider`).
-* **Justificación Arquitectónica:** En diseños menos maduros, es común ver las operaciones matemáticas incrustadas dentro de un `Enum` mediante lambdas (ej. `SUM(LongStream::sum)`). Aunque parece compacto, este enfoque acopla los datos estáticos con la lógica de negocio y obliga a modificar el archivo del `Enum` cada vez que surge un nuevo operador, violando las reglas más básicas de diseño orientado a objetos. El Patrón Strategy resuelve este problema aislando cada operación en su propia clase.
+Los patrones de diseño son soluciones típicas a problemas comunes en el diseño de software[cite: 44]. Son una especie de plantilla que se puede aplicar para resolver un problema en un contexto particular.
+
+
+### Patrón Factory Method
+* **Teoría:** En lugar de usar directamente el constructor de una clase para crear objetos, se llama a un método estático que encapsula la creación del objeto.
+* **Aplicación en el código:** Se ha implementado a través de la clase `StandardMathProvider`. El método `getStrategyFor(char symbol)` evalúa el símbolo (ej. `'+'` o `'*'`) y se encarga de crear e instanciar la clase concreta adecuada (`AdditionStrategy` o `MultiplicationStrategy`).
+* **Justificación:** En diseños acoplados, el cálculo matemático suele incrustarse con `if-else` o enumerados estáticos dentro de la clase principal. Al usar el *Factory Method*, encapsulamos la creación. El sistema pide "la operación para este símbolo" y la fábrica le devuelve el objeto correcto, ocultando la complejidad de la instanciación.
 
 ---
 
-## 2. Inyecciones y Acoplamiento
+## 2. Inyecciones y Bajo Acoplamiento
 
-### Inversión de Dependencias (DIP)
-* **Dónde está en el código:** La clase orquestadora `CephalopodCalculator` ignora por completo cómo se suma o se multiplica, y tampoco sabe qué operador le corresponde a cada símbolo. Toda esta responsabilidad es inyectada en su constructor a través del `StrategyProvider`. Esto genera un **Bajo Acoplamiento** extremo: el motor matemático puede procesar cualquier tipo de hoja de cálculo sin importar su origen.
+### Principio de Inversión de Dependencias (DIP) e Inyección por Constructor
+* **Teoría:** Los módulos de alto nivel no deben depender de módulos de bajo nivel, sino de abstracciones.
+* **Aplicación en el código:** La clase orquestadora `CephalopodCalculator` no depende de las implementaciones concretas de suma o multiplicación. Toda su dependencia recae en abstracciones puras: `StrategyProvider` y `OperationStrategy`. Estas abstracciones son inyectadas a través de su constructor (`this.provider = provider;`).
+* **Justificación (Bajo Acoplamiento):** Esto genera un bajo acoplamiento, que es la idea de diseñar módulos o componentes que tienen pocas interdependencias. El motor matemático puede procesar cualquier tipo de hoja de cálculo y operación sin saber cómo están implementadas por debajo.
 
 ---
 
 ## 3. Principios de Diseño
 
-### Principio Abierto Cerrado (OCP)
-El código debe estar abierto a la extensión pero cerrado a la modificación.
-* **Dónde está en el código:** Gracias a la arquitectura de estrategias, si en un hipotético Día 7 se introduce la operación de resta (`-`), el código existente no se tocará. Simplemente crearemos una clase `SubtractionStrategy` y la registraremos en el provider, cumpliendo el OCP a la perfección.
+Los principios de diseño actúan como restricciones o reglas que ayudan a alcanzar los fundamentos.
 
-### Principio DRY (Don't Repeat Yourself) y YAGNI (You Aren't Gonna Need It)
-* **Dónde está en el código:** 1. **DRY:** Las estrategias matemáticas se ubicaron en el paquete general (`software.aoc.day06`), ya que ambas partes del problema suman y multiplican. Duplicar estas estrategias en las carpetas `a` y `b` habría sido redundante.
-  2. **YAGNI (Simplicidad):** En la Parte B, se refactorizó un sistema complejo de tres clases (`MatrixTransposer`, `ProblemExtractor`, `VerticalWorksheetParser`) en una única clase altamente cohesiva (`VerticalWorksheetParser`). Evitar la sobreingeniería en el parseo de textos mantiene la base del código limpia y legible.
+### Principio Abierto Cerrado (OCP)
+* **Teoría:** Las clases deben estar abiertas para la extensión, pero cerradas para la modificación
+* **Aplicación en el código:** Gracias a que la dependencia matemática está invertida (DIP), el `CephalopodCalculator` cumple a la perfección el OCP. Si en un hipotético Día 7 se introduce la operación de resta, el orquestador principal no se tocará en absoluto. Simplemente añadiremos una nueva implementación a nuestra fábrica.
+
+### Principio YAGNI y DRY
+* **Teoría YAGNI:** Aconseja a los desarrolladores no añadir funcionalidad hasta que sea realmente necesaria.
+* **Teoría DRY:** Cada pieza de conocimiento en un software debería tener una representación única inequívoca[.
+* **Aplicación en el código:** 1. **YAGNI:** En la Parte B, se refactorizó un sistema de parseo complejo en una única clase `VerticalWorksheetParser` altamente cohesiva, evitando sobreingeniería.
+  2. **DRY:** Las estrategias matemáticas (`OperationStrategy`) se ubicaron en el paquete general. Duplicarlas en las carpetas `a` y `b` habría violado este principio, ya que ambas partes suman y multiplican.
 
 ---
 
 ## 4. Normas, Leyes y Fundamentos
 
-### Fundamento: Alta Cohesión e Inmutabilidad (Records)
-* **Dónde está en el código:** La entidad `MathProblem` se ha transformado en un `record` de Java. Agrupa de forma cohesiva e inmutable la lista de operandos y el símbolo del operador. Además, se le ha otorgado comportamiento mediante el método `solve(OperationStrategy)`, permitiendo que el propio problema aplique la estrategia sobre sus datos, en lugar de ser un mero contenedor pasivo.
+Los fundamentos de diseño son los conceptos o creencias básicas que subyacen en la práctica del diseño de software.
+
+### Alta Cohesión
+* **Teoría:** Refiere a la idea de que las partes de un módulo o componente deben estar estrechamente relacionadas y enfocadas en una única tarea.
+* **Aplicación en el código:** La entidad `MathProblem` se ha diseñado como un `record` de Java. Agrupa de forma estrictamente cohesiva la lista de operandos y el símbolo del operador. Además, expone un único método (`solve`) enfocado en una tarea: ejecutar la estrategia inyectada sobre sus propios datos.
+
+### Código Expresivo y Abstracción
+* **Teoría (Código Expresivo):** El código debería ser claro y comprensible, facilitando la lectura y el mantenimiento.
+* **Teoría (Abstracción):** Consiste en ocultar los detalles complejos detrás de una interfaz simple.
+* **Aplicación en el código:** La clase `MultiplicationStrategy` utiliza un enfoque funcional (`operands.stream().reduce(1L, (a, b) -> a * b)`). Esto hace que la lógica se exprese de forma declarativa y comprensible. Al mismo tiempo, la abstracción oculta a las clases superiores si se están usando flujos (streams) o bucles for tradicionales para resolver el problema matemático.

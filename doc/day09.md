@@ -1,5 +1,5 @@
 ---
-title: "Advent of Code - Día 9: La Sala de Cine (Optimización y Clean Code)"
+title: "Advent of Code - Día 9: Optimización en el Teatro (Arquitectura de Estrategias)"
 author: "Salwa Madani Lazaar"
 date: "`r Sys.Date()`"
 output: 
@@ -9,52 +9,60 @@ output:
     highlight: tango
 ---
 
-# Día 9: Optimización de Áreas (Ray Casting y Clean Code)
+# Día 9: Optimización de Áreas (Ray Casting y Diseño Modular)
 
 ## Descripción del Problema
-El último desafío consiste en encontrar el rectángulo de mayor área posible que se puede formar a partir de una lista de puntos (baldosas rojas). En la **Parte A**, el área es libre. En la **Parte B**, el rectángulo debe estar estrictamente contenido dentro de un polígono ortogonal definido por esos mismos puntos. La complejidad radica en la validación geométrica: asegurar que el rectángulo no sobresale ni es atravesado por las paredes del polígono.
+El desafío consiste en encontrar el rectángulo de mayor área posible dentro de un conjunto de baldosas. En la **Parte A**, el área es libre; en la **Parte B**, el rectángulo debe estar estrictamente contenido dentro de un polígono ortogonal. La complejidad radica en la validación geométrica (evitar colisiones con los bordes del polígono). Arquitectónicamente, el reto es orquestar algoritmos geométricos complejos sin acoplar la lógica de gestión de la sala de cine con la matemática de los optimizadores.
 
 ---
 
 ## 1. Patrones de Diseño
 
-### Patrón Strategy (Desacoplamiento de Algoritmos)
-* **Dónde está en el código:** Se ha implementado la interfaz `AreaOptimizationStrategy`.
-* **Justificación:** El orquestador principal (`MovieTheaterManager`) delega el cálculo a esta interfaz. Esto nos permite tener dos motores completamente distintos (`MaxAreaOptimizer` y `PolygonConstrainedOptimizer`) que se pueden intercambiar sin modificar el núcleo de la aplicación, cumpliendo estrictamente con el **Principio de Responsabilidad Única (SRP)**.
+El diseño de software utiliza patrones como soluciones típicas a problemas comunes.
+
+### Patrón Factory Method
+* **Teoría:** En lugar de usar directamente el constructor de una clase para crear objetos, se llama a un método que encapsula la creación.
+* **Aplicación en el código:** Se utiliza en la clase `MovieTheaterParser`. El parseo de los datos crudos (cadenas de texto con comas) se centraliza en este método, que actúa como fábrica para instanciar los objetos `Tile`.
+* **Justificación:** Centralizar la creación permite ocultar cómo se estructuran los datos de entrada, cumpliendo con la necesidad de encapsulación.
 
 ---
 
-## 2. Principios de Clean Code y Refactorización
+## 2. Inyecciones y Bajo Acoplamiento
 
-Para evitar el "Código Espagueti" (lógica anidada compleja y difícil de leer), el motor de la Parte B fue sometido a una refactorización profunda basada en los principios de Clean Code:
-
-### Single Level of Abstraction Principle (SLAP) y Extract Method
-* **Dónde está en el código:** El método principal de validación geométrica (`isFullyInside`) ya no contiene bucles matemáticos complejos. Se ha reescrito de forma declarativa:
-  1. `isCenterInsidePolygon(...)`
-  2. `hasPolygonVerticesInsideRectangle(...)`
-  3. `hasPolygonEdgesCrossingRectangle(...)`
-* **Justificación:** Al extraer la lógica matemática a métodos privados descriptivos, el método principal se lee como un índice o una regla de negocio. Esto reduce drásticamente la carga cognitiva.
-
-### Guard Clauses (Cláusulas de Guarda)
-* **Dónde está en el código:** En lugar de anidar múltiples sentencias `if`, se utilizan retornos tempranos (`if (!condicion) return false;`). Esto aplana la estructura del código y hace que el flujo de ejecución sea evidente a simple vista.
+### Inversión de Dependencias (DIP)
+* **Teoría:** Módulos de alto nivel no deben depender de módulos de bajo nivel, sino de abstracciones.
+* **Aplicación en el código:** El orquestador `MovieTheaterManager` no depende de `MaxAreaOptimizer` ni de `PolygonConstrainedOptimizer`. Depende exclusivamente de la interfaz `AreaOptimizationStrategy`.
+* **Justificación:** Esta abstracción  permite un bajo acoplamiento. El orquestador puede trabajar con cualquier optimizador actual o futuro sin conocer sus detalles internos.
 
 ---
 
-## 3. Algoritmos y Geometría Computacional
+## 3. Principios de Diseño
 
-### Ray Casting Algorithm
-* **Dónde está en el código:** En el método `isCenterInsidePolygon`.
-* **Justificación:** Para determinar si el rectángulo está dentro del polígono, trazamos un "rayo" imaginario desde el centro geométrico del rectángulo. Si el rayo cruza las paredes del polígono un número impar de veces, el centro está dentro; si es par, está fuera. Este es un algoritmo estándar de la industria, extremadamente rápido $O(N)$ y eficiente en memoria.
+### Principio Abierto Cerrado (OCP)
+* **Teoría:** Las clases deben estar abiertas para la extensión, pero cerradas para la modificación.
+* **Aplicación en el código:** El orquestador está "cerrado" a modificaciones: no tenemos que cambiar `MovieTheaterManager` cuando añadimos nuevas formas de optimizar. Está "abierto" a la extensión: podemos crear nuevas clases que implementen `AreaOptimizationStrategy` e inyectarlas dinámicamente.
 
-### Validaciones Geométricas de Borde
-Incluso si el centro está dentro, las esquinas del rectángulo podrían sobresalir de un polígono en forma de "C" o "U". Para garantizar la contención estricta:
-1. Se verifica que **ningún vértice** del polígono caiga dentro de los límites del rectángulo.
-2. Se verifica que **ninguna arista** (horizontal o vertical) atraviese el rectángulo de un extremo a otro.
+### Principio de Responsabilidad Única (SRP)
+* **Teoría:** Cada módulo o clase debe tener una sola razón para cambiar, reflejando la alta cohesión.
+* **Aplicación en el código:**
+  * `MovieTheaterParser`: Única razón de cambio: que el formato del archivo de entrada cambie.
+  * `PolygonConstrainedOptimizer`: Única razón de cambio: que las reglas geométricas del polígono cambien.
+  * `Rectangle` (Record): Única razón de cambio: que las propiedades matemáticas de un rectángulo cambien.
+* **Justificación:** Esto evita la creación de una "Clase Dios" que maneje parseo, geometría y control de flujo simultáneamente.
 
 ---
 
 ## 4. Normas, Leyes y Fundamentos
 
-### Fundamento: Alta Cohesión e Inmutabilidad
-* **Dónde está en el código:** Se ha creado el `record Rectangle`.
-* **Justificación:** En lugar de pasar variables sueltas (`minX, maxX, minY, maxY`) por todo el código, se agrupan en una entidad de dominio inmutable. Además, esta entidad tiene **alta cohesión**, ya que es capaz de calcular sus propias propiedades derivadas, como su `area()`, `centerX()` y `centerY()`. Esto evita que las fórmulas matemáticas se dispersen por las clases de servicio.
+### Alta Cohesión
+* **Teoría:** Refiere a la idea de que las partes de un módulo o componente deben estar estrechamente relacionadas y enfocadas en una única tarea.
+* **Aplicación en el código:** Se ha creado el record `Rectangle`. En lugar de tener variables dispersas de coordenadas, este record agrupa matemáticamente el ancho, alto y centro del rectángulo. Es un componente altamente cohesivo.
+
+### Abstracción y Ray Casting
+* **Teoría:** Consiste en ocultar los detalles complejos detrás de una interfaz simple.
+* **Aplicación:** El método `isFullyInside` abstrae la complejidad de la validación geométrica.
+* **Justificación:** Internamente, el código utiliza el algoritmo de *Ray Casting* . Este algoritmo es una implementación matemática eficiente que abstrae la complejidad de la contención geométrica tras una respuesta booleana simple, facilitando la legibilidad.
+
+### Código Expresivo
+* **Teoría:** El código debe ser claro y comprensible, facilitando la lectura y el mantenimiento.
+* **Aplicación:** El uso de *Guard Clauses* (retornos tempranos `if (...) return false;`) elimina la necesidad de anidación excesiva, haciendo que el flujo de control sea evidente a simple vista.
